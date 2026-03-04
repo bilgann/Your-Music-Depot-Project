@@ -24,6 +24,7 @@ How to call it/ Use it:
 
 import React, { useState, useEffect } from 'react';
 import { FormField, FormData, DropdownOption } from '@/types';
+import Dropdown from './DropDown';
 // import '.css';
 
 interface FormProps {
@@ -82,10 +83,93 @@ const Form: React.FC<FormProps> = ({
 
     //TODO: Create renderField function for the form field to return the Dropdowns
 
-    //TODO: Create both text and number return case statements
+    const renderField = (field: FormField) => {
+        switch (field.type) {
 
-    //TODO: Create return Statement
+            case 'dropdown':
+                return (
+                    <div key={field.name} className='form-field'>
+                        <label>{field.label}</label>
+                        <Dropdown
+                            fetchUrl={field.fetchUrl}
+                            labelKey={field.labelKey}
+                            valueKey={field.valueKey}
+                            placeholder={field.placeholder}
+                            value={formData[field.name]}
+                            onChange={(value) => handleFieldChange(field.name, value)}
+                        />
+                        {errors[field.name] && (
+                            <span className='error'>{errors[field.name]}</span>
+                        )}
+                    </div>
+                );
 
+            case 'text':
+                return (
+                    <div key={field.name} className='form-field'>
+                        <label>{field.label}</label>
+                        <input
+                            type='text'
+                            value={formData[field.name] || ''}
+                            onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                            placeholder={field.placeholder}
+                        />
+                        {errors[field.name] && (
+                            <span className='error'>{errors[field.name]}</span>
+                        )}
+                    </div>
+                );
+
+            case 'number':
+                return (
+                    <div key={field.name} className='form-field'>
+                        <label>{field.label}</label>
+                        <input
+                            type='number'
+                            value={formData[field.name] || ''}
+                            onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                            placeholder={field.placeholder}
+                        />
+                        {errors[field.name] && (
+                            <span className='error'>{errors[field.name]}</span>
+                        )}
+                    </div>
+                );
+
+            default:
+                return null;
+        }   
+    }
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>{title}</h2>
+          <button className="close-btn" onClick={onClose}>×</button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="modal-form">
+          <div className="form-grid">
+            {fields.map(renderField)}
+          </div>
+          
+          <div className="modal-footer">
+            <button type="button" onClick={onClose} className="btn btn-secondary">
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              className="btn btn-primary"
+              disabled={isLoading}
+            >
+              Submit
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    );
 }
 
 export default Form;
