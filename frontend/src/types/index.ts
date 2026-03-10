@@ -27,3 +27,38 @@ export interface FormData {
 export interface DropdownOption {
     [key: string]: any;
 }
+
+export type Lesson = {
+  lessonID: number
+  instructorID: number
+  studentID: number  
+  roomID: number
+  instrument: string
+  lesson_type: string
+  start_time: string
+  end_time: string
+  status: string
+  date: string
+  // Optional fields from joins
+  instructorName?: string
+  studentName?: string
+  roomName?: string
+}
+
+export type Instructor = {
+    instructorID: number
+    name: string
+    email: string
+}
+
+export type Student = {
+    studentID: number
+    name: string
+    email: string
+}
+
+export type Room = {
+    roomID: number
+    room_name: string
+    capacity: number
+}
