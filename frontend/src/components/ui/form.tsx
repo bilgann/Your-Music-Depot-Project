@@ -56,7 +56,7 @@ const Form: React.FC<FormProps> = ({
 
     if (!isOpen) return null;
 
-    const handleFieldChange = (fieldName: string, value: any) => {
+    const handleFieldChange = (fieldName: string, value: string | number) => {
         setFormData((prev: FormData) => ({
             ...prev,
             [fieldName]: value
