@@ -24,7 +24,7 @@ How to call it/ Use it:
 
 import React, { useState, useEffect } from 'react';
 import { FormField, FormData, DropdownOption } from '@/types';
-import Dropdown from './DropDown';
+import Dropdown from './drop_down';
 // import '.css';
 
 interface FormProps {
@@ -57,13 +57,13 @@ const Form: React.FC<FormProps> = ({
     if (!isOpen) return null;
 
     const handleFieldChange = (fieldName: string, value: any) => {
-        setFormData(prev => ({
+        setFormData((prev: FormData) => ({
             ...prev,
             [fieldName]: value
         }));
 
         if (errors[fieldName]) {
-            setErrors(prev => ({
+            setErrors((prev: Record<string, string>) => ({
                 ...prev,
                 [fieldName]: ''
             }));
@@ -96,7 +96,7 @@ const Form: React.FC<FormProps> = ({
                             valueKey={field.valueKey}
                             placeholder={field.placeholder}
                             value={formData[field.name]}
-                            onChange={(value) => handleFieldChange(field.name, value)}
+                            onChange={(value: string) => handleFieldChange(field.name, value)}
                         />
                         {errors[field.name] && (
                             <span className='error'>{errors[field.name]}</span>

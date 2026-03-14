@@ -11,6 +11,7 @@ class Lesson:
         self.start = start
         self.end = end
 
+    # Repo Statics
     @staticmethod
     def get(lesson_id):
         response = supabase.table("lesson").select("*").eq("lessonID", lesson_id).single().execute()
