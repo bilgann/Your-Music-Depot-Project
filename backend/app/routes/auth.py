@@ -1,9 +1,15 @@
+import logging
 from flask import Blueprint, request, jsonify
 
 auth_bp = Blueprint('auth', __name__)
-
 validUser = "barns"
 validPassword = "somePassword"
+
+logging.basicConfig(
+    filename='responses.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 @auth_bp.route('/login', methods=['GET'])
 def login():

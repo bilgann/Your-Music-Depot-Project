@@ -1,7 +1,7 @@
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from database import supabase
+from app.singletons.database import SupabaseClient
 
 class Lesson:
     def __init__(self, lesson_id, instructor_id, room_id, start, end):
