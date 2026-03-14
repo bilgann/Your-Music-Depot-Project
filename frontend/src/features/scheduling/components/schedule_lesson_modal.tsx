@@ -1,3 +1,5 @@
+'use client'
+
 /*
 The popup where admin schedules a lesson.
 
@@ -16,8 +18,8 @@ Submit → POST request.
 */
 
 import React, { useState, useEffect } from 'react'
-import { Lesson } from '../../types/index'  // ← FIX: Correct import path
-import { createLesson, updateLesson } from '../../services/lessonService'  // ← FIX: Correct import path
+import { Lesson } from '../../../types/index'
+import { createLesson, updateLesson } from '../api/lesson'
 
 interface ScheduleLessonModalProps {
   existingLesson?: Lesson

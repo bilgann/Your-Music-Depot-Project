@@ -1,3 +1,5 @@
+'use client'
+
 /*
 Scheduling Logic
 
@@ -34,10 +36,9 @@ Calendar Loading Flow
 */
 
 import React, { useEffect, useState, useMemo, useRef } from 'react'
-import { Lesson } from '../../types/index'  // ← FIX: Correct import path
-import { getLessons, deleteLesson } from '../../services/lessonService'  // ← FIX: Correct import path
-import ScheduleLessonModal from './ScheduleLessonModal'
-import '../../styles/Activity.css'  // ← FIX: Correct import path
+import { Lesson } from '../../../types/index'
+import { getLessons, deleteLesson } from '../api/lesson'
+import ScheduleLessonModal from './schedule_lesson_modal'
 
 const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 

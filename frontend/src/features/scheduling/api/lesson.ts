@@ -6,8 +6,8 @@ Example functions:
 - createLesson(lessonData): Sends a POST request to create a new lesson with the provided data.
 - update
  */
-import config from '../config'
-import { Lesson } from '../types/index'
+import config from '../../../config'
+import { Lesson } from '../../../types/index'
 
 export async function getLessons(weekStart: string, weekEnd: string): Promise<Lesson[]> {
     try {
