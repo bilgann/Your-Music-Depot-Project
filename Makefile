@@ -2,6 +2,6 @@ test-backend:
 	python -m unittest discover -s backend/tests -p "*.py"
 
 test-frontend:
-	cd frontend && npx tsc --noEmit && npm run lint # TODO: Add actual test runner and string it together
+	cd frontend && npm test && npx tsc --noEmit && npm run lint
 
 test-all: test-backend test-frontend
