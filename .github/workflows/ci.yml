@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev, dev-auth]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  python-tests:
+    name: Python Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Run tests
+        run: python -m unittest discover -s backend/tests -p "*.py"
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+
+  typescript-checks:
+    name: TypeScript Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/src/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: frontend/src
+
+      - name: Type check
+        run: npx tsc --noEmit
+        working-directory: frontend/src
+
+      - name: Lint
+        run: npm run lint
+        working-directory: frontend/src
