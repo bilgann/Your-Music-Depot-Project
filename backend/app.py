@@ -1,4 +1,3 @@
-from app.singletons.database import DatabaseConnection
 from backend import build_app
 
 app = build_app()

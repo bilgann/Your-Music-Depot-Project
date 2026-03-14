@@ -1,12 +1,18 @@
 from flask import Flask
-from app.routes.auth import auth_bp
+
+from backend.app.controllers.user import user_bp
+from backend.app.logging.database_logger import DBLogger
+from backend.app.singletons.auth import Auth
+from backend.app.singletons.database import DatabaseConnection
 
 
 def build_app():
     app = Flask(__name__)
 
-    # Register API routes
-    # app.register_blueprint(lessons_bp)
-    app.register_blueprint(auth_bp)
+    logger = DBLogger("app_logger").get_logger()
+    DatabaseConnection(logger=logger)
+    Auth(logger=logger)
+
+    app.register_blueprint(user_bp)
 
     return app

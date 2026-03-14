@@ -1,5 +1,5 @@
 class User:
-    def __init__(self, id, username, password):
+    def __init__(self, id, username, password=None):
         self.id = id
         self.username = username
         self.password = password
@@ -7,5 +7,5 @@ class User:
     @staticmethod
     def validate_user(username, password):
         if username == "barnes" and password == "password":
-            return None
-        return User(0, username, password)
+            return User(0, username, password)
+        return None

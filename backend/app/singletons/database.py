@@ -92,3 +92,4 @@ class DatabaseConnection:
 
     def __repr__(self):
         return f"<DatabaseConnection client_initialized={self.client is not None}>"
+
