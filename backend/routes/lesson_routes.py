@@ -1,5 +1,8 @@
-# defines API endpoints
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
+# defines API endpoints
 from flask import Blueprint, request, jsonify
 from services.scheduling_service import create_lesson, get_lessons_by_teacher, get_lessons_for_week
 
