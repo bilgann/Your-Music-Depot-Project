@@ -27,8 +27,8 @@ interface NavItem {
 const NavItems: NavItem[] = [
     { label: "Home Page", path: '/'},
     { label: "Schedule", path: "/schedule" },
-    { label: "Students", path: "/student" },
-    { label: "Instructors", path: "/instructor" },
+    { label: "Students", path: "/students" },
+    { label: "Instructors", path: "/instructors" },
     { label: "Rooms", path: "/rooms" },
     { label: "Payments", path: "/payments" },
     { label: "Settings", path: "/settings" },

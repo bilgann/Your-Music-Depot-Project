@@ -1,19 +1,12 @@
-export default function SchedulePage() {
-  return (
-    <main className="page-schedule">
-      <h1>Schedule Page</h1>
-    </main>
-  );
-}
 /*
 SCHEDULING PAGE
- 
+
 Includes:
 - Calendar view of scheduled events
 - Option to add new events
 - Option to edit or delete existing events
 
-Made by: Bilgan 
+Made by: Bilgan
 Date: 2026-03-09
 
 Data Flow (Very Important)
@@ -33,20 +26,18 @@ Data Flow (Very Important)
     lesson_repository.py
             ↓
     PostgreSQL
- */
+*/
 import React from 'react'
-import LessonCalendar from '../components/scheduling/LessonCalendar'
+import LessonCalendar from '../../../features/scheduling/components/lesson_calendar'
 
-const SchedulePage: React.FC = () => {
+export default function SchedulePage() {
     return (
         <div>
-           <h1>Schedule</h1>
-             <LessonCalendar
+            <h1>Schedule</h1>
+            <LessonCalendar
                 onLessonCreated={() => {
-                   console.log('Lesson created/updated')
+                    console.log('Lesson created/updated')
                 }}/>
         </div>
     )
 }
-
-export default SchedulePage

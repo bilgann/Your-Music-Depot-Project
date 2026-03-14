@@ -1,7 +1,5 @@
-"use client";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { SideBar } from "@/components/layout/Sidebar/Sidebar";
+import { SideBar } from "../components/layout/sidebar";
 
 export default function RootLayout({
   children,
