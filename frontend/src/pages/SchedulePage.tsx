@@ -1,10 +1,3 @@
-export default function SchedulePage() {
-  return (
-    <main className="page-schedule">
-      <h1>Schedule Page</h1>
-    </main>
-  );
-}
 /*
 SCHEDULING PAGE
  
@@ -34,19 +27,73 @@ Data Flow (Very Important)
             ↓
     PostgreSQL
  */
-import React from 'react'
+import React, { useState } from 'react'
 import LessonCalendar from '../components/scheduling/LessonCalendar'
 
+type ScheduleTab = 'schedule' | 'instructors' | 'students' | 'rooms' | 'instruments'
+
 const SchedulePage: React.FC = () => {
-    return (
-        <div>
-           <h1>Schedule</h1>
-             <LessonCalendar
-                onLessonCreated={() => {
-                   console.log('Lesson created/updated')
-                }}/>
-        </div>
-    )
+  const [activeTab, setActiveTab] = useState<ScheduleTab>('schedule')
+
+  return (
+    <main className="page-schedule" style={{ padding: '20px' }}>
+      <h1>Schedule</h1>
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+        <button onClick={() => setActiveTab('schedule')} disabled={activeTab === 'schedule'}>
+          Schedule
+        </button>
+        <button onClick={() => setActiveTab('instructors')} disabled={activeTab === 'instructors'}>
+          Instructors
+        </button>
+        <button onClick={() => setActiveTab('students')} disabled={activeTab === 'students'}>
+          Students
+        </button>
+        <button onClick={() => setActiveTab('rooms')} disabled={activeTab === 'rooms'}>
+          Rooms
+        </button>
+        <button onClick={() => setActiveTab('instruments')} disabled={activeTab === 'instruments'}>
+          Instruments
+        </button>
+      </div>
+
+      {activeTab === 'schedule' && (
+        <LessonCalendar
+          onLessonCreated={() => {
+            console.log('Lesson created/updated')
+          }}
+        />
+      )}
+
+      {activeTab === 'instructors' && (
+        <section>
+          <h2>Instructors</h2>
+          <p>Instructor management content can be placed here.</p>
+        </section>
+      )}
+
+      {activeTab === 'students' && (
+        <section>
+          <h2>Students</h2>
+          <p>Student management content can be placed here.</p>
+        </section>
+      )}
+
+      {activeTab === 'rooms' && (
+        <section>
+          <h2>Rooms</h2>
+          <p>Room management content can be placed here.</p>
+        </section>
+      )}
+
+      {activeTab === 'instruments' && (
+        <section>
+          <h2>Instruments</h2>
+          <p>Instrument management content can be placed here.</p>
+        </section>
+      )}
+    </main>
+  )
 }
 
 export default SchedulePage
