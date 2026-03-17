@@ -37,7 +37,8 @@ import React, { useEffect, useState, useMemo, useRef } from 'react'
 import { Lesson } from '../../types/index'  // ← FIX: Correct import path
 import { getLessons, deleteLesson } from '../../services/lessonService'  // ← FIX: Correct import path
 import ScheduleLessonModal from './ScheduleLessonModal'
-import '../../styles/Activity.css'  // ← FIX: Correct import path
+
+
 
 const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 

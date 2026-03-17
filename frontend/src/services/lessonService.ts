@@ -9,73 +9,118 @@ Example functions:
 import config from '../config'
 import { Lesson } from '../types/index'
 
-export async function getLessons(weekStart: string, weekEnd: string): Promise<Lesson[]> {
-    try {
-        const res = await fetch(`${config.API_BASE}/lessons?start_date=${weekStart}&end_date=${weekEnd}`)
-        if (!res.ok) {
-            throw new Error(`Failed to fetch lessons: ${res.statusText}`)
-        }
-        return await res.json()  // ← MISSING: Add return statement
-    } catch(error) {
-        console.error('Error fetching lessons:', error)
-        throw error
-    }
+export type LessonFilters = {
+  instructorID?: number
+  roomID?: number
+  day?: string // YYYY-MM-DD
 }
 
-export async function createLesson(data: Partial<Lesson>): Promise<Lesson> {
-    try {
-        const res = await fetch(`${config.API_BASE}/lessons`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        })
+function extractErrorMessage(raw: unknown): string {
+  if (typeof raw === 'string' && raw.trim()) return raw
 
-        if (!res.ok) {
-            const error = await res.text()
-            throw new Error(`Failed to create lesson: ${res.status} ${error}`)
-        }
+  if (raw && typeof raw === 'object') {
+    const obj = raw as Record<string, unknown>
+    if (typeof obj.error === 'string' && obj.error) return obj.error
+    if (typeof obj.message === 'string' && obj.message) return obj.message
+    if (typeof obj.details === 'string' && obj.details) return obj.details
+  }
 
-        return await res.json()
-
-    } catch(error) {
-        console.error('Error creating lesson:', error)
-        throw error
-    }
+  return 'Request failed'
 }
 
-export async function updateLesson(lessonID: number, data: Partial<Lesson>): Promise<Lesson> {
-    try {
-        const res = await fetch(`${config.API_BASE}/lessons/${lessonID}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        })
+async function parseError(res: Response): Promise<never> {
+  try {
+    const data = await res.json()
+    throw new Error(extractErrorMessage(data))
+  } catch {
+    const text = await res.text()
+    throw new Error(extractErrorMessage(text) || `Request failed: ${res.status}`)
+  }
+}
 
-        if (!res.ok) {
-            const error = await res.text()
-            throw new Error(`Failed to update lesson: ${res.status} ${error}`)
-        }
+function serializeLessonPayload(data: Partial<Lesson> & Record<string, unknown>) {
+  return {
+    instructor_id: data.instructorID,
+    student_id: data.studentID,
+    room_id: data.roomID,
+    instrument: data.instrument,
+    lesson_type: data.lesson_type,
+    start_time: data.start_time,
+    end_time: data.end_time,
+    day_of_week: data.day_of_week,
+    term: data.term,
+    status: data.status ?? 'scheduled'
+  }
+}
 
-        return await res.json()
+export async function getLessons(
+  weekStart: string,
+  weekEnd: string,
+  filters?: LessonFilters
+): Promise<Lesson[]> {
+  try {
+    const params = new URLSearchParams({
+      start_date: weekStart,
+      end_date: weekEnd
+    })
 
-    } catch(error) {
-        console.error('Error updating lesson:', error)
-        throw error
-    }
+    if (filters?.instructorID) params.set('instructor_id', String(filters.instructorID))
+    if (filters?.roomID) params.set('room_id', String(filters.roomID))
+    if (filters?.day) params.set('day', filters.day)
+
+    const res = await fetch(`${config.API_BASE}/lessons?${params.toString()}`)
+    if (!res.ok) await parseError(res)
+    return await res.json()
+  } catch (error) {
+    console.error('Error fetching lessons:', error)
+    throw error
+  }
+}
+
+export async function createLesson(data: Partial<Lesson> & Record<string, unknown>): Promise<Lesson> {
+  try {
+    const res = await fetch(`${config.API_BASE}/lessons`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(serializeLessonPayload(data))
+    })
+
+    if (!res.ok) await parseError(res)
+    return await res.json()
+  } catch (error) {
+    console.error('Error creating lesson:', error)
+    throw error
+  }
+}
+
+export async function updateLesson(
+  lessonID: number,
+  data: Partial<Lesson> & Record<string, unknown>
+): Promise<Lesson> {
+  try {
+    const res = await fetch(`${config.API_BASE}/lessons/${lessonID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(serializeLessonPayload(data))
+    })
+
+    if (!res.ok) await parseError(res)
+    return await res.json()
+  } catch (error) {
+    console.error('Error updating lesson:', error)
+    throw error
+  }
 }
 
 export async function deleteLesson(lessonID: number): Promise<void> {
-    try {
-        const res = await fetch(`${config.API_BASE}/lessons/${lessonID}`, {
-            method: 'DELETE'
-        })
+  try {
+    const res = await fetch(`${config.API_BASE}/lessons/${lessonID}`, {
+      method: 'DELETE'
+    })
 
-        if (!res.ok) {
-            const error = await res.text()
-            throw new Error(`Failed to delete lesson: ${res.status} ${error}`)
-        }
-    } catch (error) {
-        console.error('[lessonService] Error deleting lesson:', error)
-        throw error
-    }
+    if (!res.ok) await parseError(res)
+  } catch (error) {
+    console.error('[lessonService] Error deleting lesson:', error)
+    throw error
+  }
 }
