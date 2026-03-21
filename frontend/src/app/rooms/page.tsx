@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 export type Room = {
   id: string;
@@ -17,8 +17,28 @@ const initialRooms: Room[] = [
 ];
 
 export default function RoomPage() {
-  const [rooms, setRooms] = useState<Room[]>(initialRooms);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  useEffect(() => {
+    fetchRooms();
+  }, []);
+
+  const fetchRooms = async () => {
+    try {
+      const resp = await fetch('/api/rooms');
+      if (resp.ok) {
+        setRooms(await resp.json());
+      } else {
+        setRooms(initialRooms);
+      }
+    } catch {
+      setRooms(initialRooms);
+    } finally {
+      setLoading(false);
+    }
+  };
   
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -70,18 +90,36 @@ export default function RoomPage() {
     setIsModalOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateForm()) return;
 
-    if (modalMode === 'add') {
-      const newRoom: Room = {
-        id: Date.now().toString(),
-        ...formData
-      };
-      setRooms([...rooms, newRoom]);
-    } else if (modalMode === 'edit' && currentRoom) {
-      setRooms(rooms.map(r => r.id === currentRoom.id ? { ...currentRoom, ...formData } : r));
+    try {
+      const isAdd = modalMode === 'add';
+      const url = isAdd ? '/api/rooms' : `/api/rooms/${currentRoom?.id}`;
+      const method = isAdd ? 'POST' : 'PUT';
+
+      const resp = await fetch(url, {
+        method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData)
+      });
+      
+      if (resp.ok) {
+        await fetchRooms();
+      } else {
+        // Fallback
+        if (isAdd) {
+          setRooms([...rooms, { id: Date.now().toString(), ...formData }]);
+        } else if (currentRoom) {
+          setRooms(rooms.map(r => r.id === currentRoom.id ? { ...currentRoom, ...formData } : r));
+        }
+      }
+    } catch {
+       if (modalMode === 'add') {
+          setRooms([...rooms, { id: Date.now().toString(), ...formData }]);
+        } else if (currentRoom) {
+          setRooms(rooms.map(r => r.id === currentRoom.id ? { ...currentRoom, ...formData } : r));
+        }
     }
+
     setIsModalOpen(false);
   };
 
@@ -90,9 +128,18 @@ export default function RoomPage() {
     setIsDeleteOpen(true);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (roomToDelete) {
-      setRooms(rooms.filter(r => r.id !== roomToDelete.id));
+      try {
+        const resp = await fetch(`/api/rooms/${roomToDelete.id}`, { method: 'DELETE' });
+        if (resp.ok) {
+          await fetchRooms();
+        } else {
+          setRooms(rooms.filter(r => r.id !== roomToDelete.id)); // fallback
+        }
+      } catch {
+        setRooms(rooms.filter(r => r.id !== roomToDelete.id)); // fallback
+      }
       setIsDeleteOpen(false);
       setRoomToDelete(null);
     }
@@ -150,7 +197,11 @@ export default function RoomPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/50">
-              {filteredRooms.length > 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">Loading initial rooms...</td>
+                </tr>
+              ) : filteredRooms.length > 0 ? (
                 filteredRooms.map((room) => (
                   <tr key={room.id} className="hover:bg-zinc-800/30 transition-colors group">
                     <td className="px-6 py-4 font-medium text-gray-200">{room.name}</td>
