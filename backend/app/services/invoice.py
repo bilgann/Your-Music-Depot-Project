@@ -1,19 +1,25 @@
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from database import supabase
+from backend.app.singletons.database import DatabaseConnection
+
+
+def _db():
+    return DatabaseConnection().client
+
 
 def get_all_invoices():
-    return supabase.table("invoice").select("*").execute().data
+    return _db().table("invoice").select("*").execute().data
+
 
 def get_invoice_by_id(invoice_id):
-    return supabase.table("invoice").select("*").eq("invoice_id", invoice_id).execute().data
+    return _db().table("invoice").select("*").eq("invoice_id", invoice_id).execute().data
+
 
 def create_invoice(data):
-    return supabase.table("invoice").insert(data).execute().data
+    return _db().table("invoice").insert(data).execute().data
+
 
 def update_invoice(invoice_id, data):
-    return supabase.table("invoice").update(data).eq("invoice_id", invoice_id).execute().data
+    return _db().table("invoice").update(data).eq("invoice_id", invoice_id).execute().data
+
 
 def delete_invoice(invoice_id):
-    return supabase.table("invoice").delete().eq("invoice_id", invoice_id).execute().data
+    return _db().table("invoice").delete().eq("invoice_id", invoice_id).execute().data
