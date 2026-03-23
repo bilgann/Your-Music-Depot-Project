@@ -15,7 +15,7 @@ class DatabaseConnection:
     """
 
     # Default environment variable details
-    _env_location = "../..env"
+    _env_location = "../../.env"
     _envar_url_name = "SUPABASE_URL"
     _envar_key_name = "SUPABASE_KEY"
 
