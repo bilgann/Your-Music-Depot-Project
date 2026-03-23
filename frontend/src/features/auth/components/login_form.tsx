@@ -20,7 +20,7 @@ export default function LoginForm() {
             const res = await login(username, password);
             if (res.success && res.data) {
                 localStorage.setItem("token", res.data);
-                router.push("/schedule");
+                router.push("/home");
             } else {
                 setError(res.message);
             }

@@ -15,7 +15,7 @@ class DatabaseConnection:
     """
 
     # Default environment variable details
-    _env_location = "../.env"
+    _env_location = "../..env"
     _envar_url_name = "SUPABASE_URL"
     _envar_key_name = "SUPABASE_KEY"
 
@@ -27,7 +27,7 @@ class DatabaseConnection:
 
     def __new__(cls, env_location: Optional[str] = None, logger: Optional[logging.Logger] = None):
         """
-        Returns the singleton instance. Optionally override .env location or pass a logger.
+        Returns the singleton instance. Optionally override ..env location or pass a logger.
         """
         if cls._instance is None:
             with cls._lock:

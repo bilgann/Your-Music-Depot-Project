@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 
 from backend.app.contracts.response import ResponseContract
+from backend.app.contracts.validation import error_response, validate
 import backend.app.services.student as svc
 
 student_bp = Blueprint("students", __name__, url_prefix="/api/students")
@@ -9,10 +10,9 @@ student_bp = Blueprint("students", __name__, url_prefix="/api/students")
 @student_bp.route("", methods=["GET"])
 def list_students():
     try:
-        data = svc.get_all_students()
-        return jsonify(ResponseContract(True, "OK", data).to_dict()), 200
+        return jsonify(ResponseContract(True, "OK", svc.get_all_students()).to_dict()), 200
     except Exception as e:
-        return jsonify(ResponseContract(False, str(e)).to_dict()), 500
+        return error_response(e)
 
 
 @student_bp.route("/<student_id>", methods=["GET"])
@@ -23,25 +23,27 @@ def get_student(student_id):
             return jsonify(ResponseContract(False, "Student not found.").to_dict()), 404
         return jsonify(ResponseContract(True, "OK", data[0]).to_dict()), 200
     except Exception as e:
-        return jsonify(ResponseContract(False, str(e)).to_dict()), 500
+        return error_response(e)
 
 
 @student_bp.route("", methods=["POST"])
 def create_student():
     try:
-        data = svc.create_student(request.get_json())
-        return jsonify(ResponseContract(True, "Student created.", data).to_dict()), 201
+        body = request.get_json()
+        validate(body, "student")
+        return jsonify(ResponseContract(True, "Student created.", svc.create_student(body)).to_dict()), 201
     except Exception as e:
-        return jsonify(ResponseContract(False, str(e)).to_dict()), 500
+        return error_response(e)
 
 
 @student_bp.route("/<student_id>", methods=["PUT"])
 def update_student(student_id):
     try:
-        data = svc.update_student(student_id, request.get_json())
-        return jsonify(ResponseContract(True, "Student updated.", data).to_dict()), 200
+        body = request.get_json()
+        validate(body, "student", partial=True)
+        return jsonify(ResponseContract(True, "Student updated.", svc.update_student(student_id, body)).to_dict()), 200
     except Exception as e:
-        return jsonify(ResponseContract(False, str(e)).to_dict()), 500
+        return error_response(e)
 
 
 @student_bp.route("/<student_id>", methods=["DELETE"])
@@ -50,4 +52,4 @@ def delete_student(student_id):
         svc.delete_student(student_id)
         return jsonify(ResponseContract(True, "Student deleted.").to_dict()), 200
     except Exception as e:
-        return jsonify(ResponseContract(False, str(e)).to_dict()), 500
+        return error_response(e)

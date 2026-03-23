@@ -1,0 +1,822 @@
+{
+  "info": {
+    "name": "Your Music Depot API",
+    "description": "Full API collection for Your Music Depot. Import and set the `base_url` variable if your server runs on a different port.\n\nRun the **Full Flow** folder top-to-bottom to exercise the complete create → conflict → invoice → payment lifecycle.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url",      "value": "http://localhost:5000" },
+    { "key": "token",         "value": "" },
+    { "key": "instructor_id", "value": "" },
+    { "key": "student_id",    "value": "" },
+    { "key": "room_id",       "value": "" },
+    { "key": "lesson_id",     "value": "" },
+    { "key": "invoice_id",    "value": "" },
+    { "key": "payment_id",    "value": "" }
+  ],
+  "item": [
+
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/user/login?username=barnes&password=password",
+              "host": ["{{base_url}}"],
+              "path": ["user", "login"],
+              "query": [
+                { "key": "username", "value": "barnes" },
+                { "key": "password", "value": "password" }
+              ]
+            },
+            "description": "Authenticate and receive a JWT token."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('success is true', () => pm.expect(body.success).to.be.true);",
+                  "pm.test('token returned', () => pm.expect(body.data).to.be.a('string').and.not.empty);",
+                  "pm.collectionVariables.set('token', body.data);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login – bad credentials",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/user/login?username=wrong&password=wrong",
+              "host": ["{{base_url}}"],
+              "path": ["user", "login"],
+              "query": [
+                { "key": "username", "value": "wrong" },
+                { "key": "password", "value": "wrong" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('401 for bad credentials', () => pm.response.to.have.status(401));",
+                  "pm.test('success is false', () => pm.expect(pm.response.json().success).to.be.false);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/user/logout",
+              "host": ["{{base_url}}"],
+              "path": ["user", "logout"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('success is true', () => pm.expect(pm.response.json().success).to.be.true);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "Full Flow",
+      "description": "Run top-to-bottom. Each step captures IDs used by subsequent requests.\n\n1. Login\n2. Create Room\n3. Create Instructor\n4. Create Student\n5. Create Lesson\n6. Conflict check – try to delete the instructor (expect 409)\n7. Generate monthly invoice\n8. Record partial payment\n9. Record final payment – invoice flips to Paid\n10. Attempt overpayment (expect 422)",
+      "item": [
+        {
+          "name": "1. Login",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/user/login?username=barnes&password=password",
+              "host": ["{{base_url}}"],
+              "path": ["user", "login"],
+              "query": [
+                { "key": "username", "value": "barnes" },
+                { "key": "password", "value": "password" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('token', pm.response.json().data);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Create Room",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/rooms", "host": ["{{base_url}}"], "path": ["api", "rooms"] },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Studio A\",\n  \"capacity\": 4\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('success is true', () => pm.expect(body.success).to.be.true);",
+                  "const record = Array.isArray(body.data) ? body.data[0] : body.data;",
+                  "pm.collectionVariables.set('room_id', record.room_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Create Instructor",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/instructors", "host": ["{{base_url}}"], "path": ["api", "instructors"] },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Smith\",\n  \"email\": \"jane@example.com\",\n  \"phone\": \"555-0100\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const record = Array.isArray(pm.response.json().data) ? pm.response.json().data[0] : pm.response.json().data;",
+                  "pm.collectionVariables.set('instructor_id', record.instructor_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. Create Student",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/students", "host": ["{{base_url}}"], "path": ["api", "students"] },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alex Johnson\",\n  \"email\": \"alex@example.com\",\n  \"phone\": \"555-0200\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const record = Array.isArray(pm.response.json().data) ? pm.response.json().data[0] : pm.response.json().data;",
+                  "pm.collectionVariables.set('student_id', record.student_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5. Create Lesson",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/lessons", "host": ["{{base_url}}"], "path": ["api", "lessons"] },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"student_id\": \"{{student_id}}\",\n  \"instructor_id\": \"{{instructor_id}}\",\n  \"room_id\": \"{{room_id}}\",\n  \"start_time\": \"2026-03-01T10:00:00\",\n  \"end_time\": \"2026-03-01T11:00:00\",\n  \"status\": \"Completed\",\n  \"rate\": 50\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const record = Array.isArray(pm.response.json().data) ? pm.response.json().data[0] : pm.response.json().data;",
+                  "pm.collectionVariables.set('lesson_id', record.lesson_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6. Conflict Check – Delete Instructor with Lessons (expect 409)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/instructors/{{instructor_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "instructors", "{{instructor_id}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('409 Conflict – FK violation', () => pm.response.to.have.status(409));",
+                  "const body = pm.response.json();",
+                  "pm.test('success is false', () => pm.expect(body.success).to.be.false);",
+                  "pm.test('message is informative', () => pm.expect(body.message).to.include('Cannot'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7. Generate Monthly Invoice",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/invoices/generate", "host": ["{{base_url}}"], "path": ["api", "invoices", "generate"] },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"student_id\": \"{{student_id}}\",\n  \"year\": 2026,\n  \"month\": 3\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('success is true', () => pm.expect(body.success).to.be.true);",
+                  "pm.test('invoice in data', () => pm.expect(body.data.invoice).to.exist);",
+                  "pm.test('line_items populated', () => pm.expect(body.data.line_items).to.be.an('array').with.length.greaterThan(0));",
+                  "pm.collectionVariables.set('invoice_id', body.data.invoice.invoice_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "8. Record Partial Payment",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/payments", "host": ["{{base_url}}"], "path": ["api", "payments"] },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invoice_id\": \"{{invoice_id}}\",\n  \"amount\": 25,\n  \"payment_method\": \"Card\",\n  \"paid_on\": \"2026-03-10\",\n  \"notes\": \"Partial payment\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('success is true', () => pm.expect(body.success).to.be.true);",
+                  "pm.collectionVariables.set('payment_id', body.data.payment_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "8b. Verify Invoice Still Pending",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/invoices/{{invoice_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "invoices", "{{invoice_id}}"]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('status is still Pending', () => pm.expect(pm.response.json().data.status).to.equal('Pending'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "9. Record Final Payment – Invoice becomes Paid",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/payments", "host": ["{{base_url}}"], "path": ["api", "payments"] },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invoice_id\": \"{{invoice_id}}\",\n  \"amount\": 25,\n  \"payment_method\": \"Cash\",\n  \"paid_on\": \"2026-03-15\",\n  \"notes\": \"Final payment\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "// Verify invoice is now Paid",
+                  "const getInvoice = {",
+                  "  url: pm.collectionVariables.get('base_url') + '/api/invoices/' + pm.collectionVariables.get('invoice_id'),",
+                  "  method: 'GET'",
+                  "};",
+                  "pm.sendRequest(getInvoice, (err, res) => {",
+                  "  pm.test('invoice status is Paid', () => pm.expect(res.json().data.status).to.equal('Paid'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10. Overpayment Rejected (expect 422)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/payments", "host": ["{{base_url}}"], "path": ["api", "payments"] },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invoice_id\": \"{{invoice_id}}\",\n  \"amount\": 100\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('422 – already paid', () => pm.response.to.have.status(422));",
+                  "pm.test('success is false', () => pm.expect(pm.response.json().success).to.be.false);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "Instructors",
+      "item": [
+        {
+          "name": "List Instructors",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/instructors", "host": ["{{base_url}}"], "path": ["api", "instructors"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Get Instructor",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/instructors/{{instructor_id}}", "host": ["{{base_url}}"], "path": ["api", "instructors", "{{instructor_id}}"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Create Instructor",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/instructors", "host": ["{{base_url}}"], "path": ["api", "instructors"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"555-0101\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('201 Created', () => pm.response.to.have.status(201));"] } }]
+        },
+        {
+          "name": "Create Instructor – missing name (expect 422)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/instructors", "host": ["{{base_url}}"], "path": ["api", "instructors"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"noname@example.com\"\n}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('422 Validation Error', () => pm.response.to.have.status(422));",
+                  "const body = pm.response.json();",
+                  "pm.test('errors array present', () => pm.expect(body.errors).to.be.an('array'));",
+                  "pm.test('name field flagged', () => pm.expect(body.errors.some(e => e.field === 'name')).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Instructor",
+          "request": {
+            "method": "PUT",
+            "url": { "raw": "{{base_url}}/api/instructors/{{instructor_id}}", "host": ["{{base_url}}"], "path": ["api", "instructors", "{{instructor_id}}"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"555-9999\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Delete Instructor",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{base_url}}/api/instructors/{{instructor_id}}", "host": ["{{base_url}}"], "path": ["api", "instructors", "{{instructor_id}}"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK or 409 Conflict', () => pm.expect([200,409]).to.include(pm.response.code));"] } }]
+        }
+      ]
+    },
+
+    {
+      "name": "Students",
+      "item": [
+        {
+          "name": "List Students",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/students", "host": ["{{base_url}}"], "path": ["api", "students"] } },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Get Student",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/students/{{student_id}}", "host": ["{{base_url}}"], "path": ["api", "students", "{{student_id}}"] } },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Create Student",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/students", "host": ["{{base_url}}"], "path": ["api", "students"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Sam Lee\",\n  \"email\": \"sam@example.com\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('201 Created', () => pm.response.to.have.status(201));"] } }]
+        },
+        {
+          "name": "Create Student – missing name (expect 422)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/students", "host": ["{{base_url}}"], "path": ["api", "students"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('422 Validation Error', () => pm.response.to.have.status(422));"] } }]
+        },
+        {
+          "name": "Update Student",
+          "request": {
+            "method": "PUT",
+            "url": { "raw": "{{base_url}}/api/students/{{student_id}}", "host": ["{{base_url}}"], "path": ["api", "students", "{{student_id}}"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"555-8888\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Delete Student",
+          "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/students/{{student_id}}", "host": ["{{base_url}}"], "path": ["api", "students", "{{student_id}}"] } },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK or 409 Conflict', () => pm.expect([200,409]).to.include(pm.response.code));"] } }]
+        }
+      ]
+    },
+
+    {
+      "name": "Rooms",
+      "item": [
+        {
+          "name": "List Rooms",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/rooms", "host": ["{{base_url}}"], "path": ["api", "rooms"] } },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Get Room",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/rooms/{{room_id}}", "host": ["{{base_url}}"], "path": ["api", "rooms", "{{room_id}}"] } },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Create Room",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/rooms", "host": ["{{base_url}}"], "path": ["api", "rooms"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Studio B\",\n  \"capacity\": 2\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('201 Created', () => pm.response.to.have.status(201));"] } }]
+        },
+        {
+          "name": "Create Room – missing name (expect 422)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/rooms", "host": ["{{base_url}}"], "path": ["api", "rooms"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"capacity\": 4\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('422 Validation Error', () => pm.response.to.have.status(422));"] } }]
+        },
+        {
+          "name": "Update Room",
+          "request": {
+            "method": "PUT",
+            "url": { "raw": "{{base_url}}/api/rooms/{{room_id}}", "host": ["{{base_url}}"], "path": ["api", "rooms", "{{room_id}}"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"capacity\": 6\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Delete Room",
+          "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/rooms/{{room_id}}", "host": ["{{base_url}}"], "path": ["api", "rooms", "{{room_id}}"] } },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK or 409 Conflict', () => pm.expect([200,409]).to.include(pm.response.code));"] } }]
+        }
+      ]
+    },
+
+    {
+      "name": "Lessons",
+      "item": [
+        {
+          "name": "List Lessons",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/lessons", "host": ["{{base_url}}"], "path": ["api", "lessons"] } },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "List Lessons – week filter",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/lessons?weekStart=2026-03-01&weekEnd=2026-03-07",
+              "host": ["{{base_url}}"],
+              "path": ["api", "lessons"],
+              "query": [
+                { "key": "weekStart", "value": "2026-03-01" },
+                { "key": "weekEnd",   "value": "2026-03-07" }
+              ]
+            }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Get Lesson",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/lessons/{{lesson_id}}", "host": ["{{base_url}}"], "path": ["api", "lessons", "{{lesson_id}}"] } },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Create Lesson",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/lessons", "host": ["{{base_url}}"], "path": ["api", "lessons"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"student_id\": \"{{student_id}}\",\n  \"instructor_id\": \"{{instructor_id}}\",\n  \"room_id\": \"{{room_id}}\",\n  \"start_time\": \"2026-03-05T14:00:00\",\n  \"end_time\": \"2026-03-05T15:00:00\",\n  \"status\": \"Scheduled\",\n  \"rate\": 50\n}"
+            }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('201 Created', () => pm.response.to.have.status(201));"] } }]
+        },
+        {
+          "name": "Create Lesson – missing required fields (expect 422)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/lessons", "host": ["{{base_url}}"], "path": ["api", "lessons"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"start_time\": \"2026-03-05T14:00:00\"\n}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('422 Validation Error', () => pm.response.to.have.status(422));",
+                  "const body = pm.response.json();",
+                  "pm.test('multiple field errors', () => pm.expect(body.errors.length).to.be.greaterThan(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Lesson",
+          "request": {
+            "method": "PUT",
+            "url": { "raw": "{{base_url}}/api/lessons/{{lesson_id}}", "host": ["{{base_url}}"], "path": ["api", "lessons", "{{lesson_id}}"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"Completed\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Delete Lesson",
+          "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/lessons/{{lesson_id}}", "host": ["{{base_url}}"], "path": ["api", "lessons", "{{lesson_id}}"] } },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        }
+      ]
+    },
+
+    {
+      "name": "Invoices",
+      "item": [
+        {
+          "name": "List Invoices",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/invoices", "host": ["{{base_url}}"], "path": ["api", "invoices"] } },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Outstanding Balance",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/invoices/outstanding-balance", "host": ["{{base_url}}"], "path": ["api", "invoices", "outstanding-balance"] } },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('total_outstanding_balance present', () => pm.expect(body.data).to.have.property('total_outstanding_balance'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Invoice",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/invoices/{{invoice_id}}", "host": ["{{base_url}}"], "path": ["api", "invoices", "{{invoice_id}}"] } },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Get Invoice – not found (expect 404)",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/invoices/999999", "host": ["{{base_url}}"], "path": ["api", "invoices", "999999"] } },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('404 Not Found', () => pm.response.to.have.status(404));"] } }]
+        },
+        {
+          "name": "Get Line Items",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/invoices/{{invoice_id}}/line-items", "host": ["{{base_url}}"], "path": ["api", "invoices", "{{invoice_id}}", "line-items"] } },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('data is array', () => pm.expect(pm.response.json().data).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Generate Invoice",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/invoices/generate", "host": ["{{base_url}}"], "path": ["api", "invoices", "generate"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"student_id\": \"{{student_id}}\",\n  \"year\": 2026,\n  \"month\": 3\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('201 or 422 (duplicate)', () => pm.expect([201,422]).to.include(pm.response.code));"] } }]
+        },
+        {
+          "name": "Generate Invoice – missing fields (expect 422)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/invoices/generate", "host": ["{{base_url}}"], "path": ["api", "invoices", "generate"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"student_id\": \"{{student_id}}\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('422 Validation Error', () => pm.response.to.have.status(422));"] } }]
+        },
+        {
+          "name": "Update Invoice",
+          "request": {
+            "method": "PUT",
+            "url": { "raw": "{{base_url}}/api/invoices/{{invoice_id}}", "host": ["{{base_url}}"], "path": ["api", "invoices", "{{invoice_id}}"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"Cancelled\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Delete Invoice",
+          "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/invoices/{{invoice_id}}", "host": ["{{base_url}}"], "path": ["api", "invoices", "{{invoice_id}}"] } },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        }
+      ]
+    },
+
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "List Payments",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/payments", "host": ["{{base_url}}"], "path": ["api", "payments"] } },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Get Payment",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/api/payments/{{payment_id}}", "host": ["{{base_url}}"], "path": ["api", "payments", "{{payment_id}}"] } },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Record Payment",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/payments", "host": ["{{base_url}}"], "path": ["api", "payments"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"invoice_id\": \"{{invoice_id}}\",\n  \"amount\": 50,\n  \"payment_method\": \"Card\",\n  \"paid_on\": \"2026-03-20\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('201 or 422', () => pm.expect([201,422]).to.include(pm.response.code));"] } }]
+        },
+        {
+          "name": "Record Payment – missing invoice_id (expect 422)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/payments", "host": ["{{base_url}}"], "path": ["api", "payments"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": 50\n}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('422 Validation Error', () => pm.response.to.have.status(422));",
+                  "pm.test('invoice_id flagged', () => pm.expect(pm.response.json().errors.some(e => e.field === 'invoice_id')).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Record Payment – zero amount (expect 422)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/payments", "host": ["{{base_url}}"], "path": ["api", "payments"] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"invoice_id\": \"{{invoice_id}}\",\n  \"amount\": 0\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('422 Validation Error', () => pm.response.to.have.status(422));"] } }]
+        },
+        {
+          "name": "Delete Payment",
+          "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/api/payments/{{payment_id}}", "host": ["{{base_url}}"], "path": ["api", "payments", "{{payment_id}}"] } },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        }
+      ]
+    }
+
+  ]
+}

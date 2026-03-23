@@ -199,3 +199,135 @@ body {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* ── App layout ──────────────────────────────────────── */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.app-content {
+  margin-left: 240px;
+  padding: 40px;
+  flex: 1;
+}
+
+/* ── Dashboard page ──────────────────────────────────── */
+.dashboard-page {
+  max-width: 640px;
+}
+
+.dashboard-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 28px;
+}
+
+.dashboard-error {
+  background: #fdecea;
+  color: #c0392b;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+/* ── Stat cards ──────────────────────────────────────── */
+.dashboard-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.stat-card {
+  flex: 1;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.stat-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stat-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1;
+}
+
+.stat-value.stat-empty {
+  font-size: 16px;
+  color: #aaa;
+  font-weight: 400;
+}
+
+.stat-next {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-sub {
+  font-size: 13px;
+  color: #888;
+}
+
+/* ── Quick action buttons ────────────────────────────── */
+.dashboard-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 11px 22px;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s, opacity 0.15s;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.action-btn--primary {
+  background: #4a90e2;
+  color: #fff;
+}
+
+.action-btn--primary:hover {
+  background: #357abd;
+}
+
+.action-btn--secondary {
+  background: #2ecc71;
+  color: #fff;
+}
+
+.action-btn--secondary:hover {
+  background: #27ae60;
+}
+
+.action-btn--ghost {
+  background: transparent;
+  color: #4a90e2;
+  border: 1px solid #4a90e2;
+}
+
+.action-btn--ghost:hover {
+  background: #eef5fd;
+}
