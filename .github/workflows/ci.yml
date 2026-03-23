@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev, dev-auth]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  # ── Backend ────────────────────────────────────────────────────────────
+  python-tests:
+    name: Python Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt python-json-logger
+
+      - name: Run tests
+        run: python -m unittest discover -s backend/tests -p "*.py"
+
+  # ── Frontend ───────────────────────────────────────────────────────────
+  typescript-checks:
+    name: TypeScript Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Unit tests (Vitest)
+        working-directory: frontend
+        run: npm test
+
+      - name: Type check
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
