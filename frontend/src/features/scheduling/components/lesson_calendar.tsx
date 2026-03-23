@@ -1,3 +1,5 @@
+'use client'
+
 /*
 Scheduling Logic
 
@@ -34,11 +36,9 @@ Calendar Loading Flow
 */
 
 import React, { useEffect, useState, useMemo, useRef } from 'react'
-import { Lesson } from '../../types/index'  // ← FIX: Correct import path
-import { getLessons, deleteLesson } from '../../services/lessonService'  // ← FIX: Correct import path
-import ScheduleLessonModal from './ScheduleLessonModal'
-
-
+import { Lesson } from '../../../types/index'
+import { getLessons, deleteLesson } from '../api/lesson'
+import ScheduleLessonModal from './schedule_lesson_modal'
 
 const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 
@@ -82,6 +82,26 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
   const panelRef = useRef<HTMLDivElement | null>(null)
   const [rowHeightPx, setRowHeightPx] = useState<number>(54)
   const [rowGapPx, setRowGapPx] = useState<number>(0)
+
+  async function fetchLessons() {
+    function formatDateLocal(d: Date) {
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      const dd = String(d.getDate()).padStart(2, '0')
+      return `${y}-${m}-${dd}`
+    }
+
+    const start = formatDateLocal(weekStart)
+    const end = formatDateLocal(new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000))
+
+    try {
+      const data = await getLessons(start, end)
+      console.debug('[LessonCalendar] fetched lessons count=', Array.isArray(data) ? data.length : 0)
+      setLessons(data)
+    } catch (error) {
+      console.error('[LessonCalendar] Error fetching lessons:', error)
+    }
+  }
 
   useEffect(() => { fetchLessons() }, [weekStart])
 
@@ -174,26 +194,6 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
 
     return map
   }, [lessons])
-
-  async function fetchLessons() {
-    function formatDateLocal(d: Date) {
-      const y = d.getFullYear()
-      const m = String(d.getMonth() + 1).padStart(2, '0')
-      const dd = String(d.getDate()).padStart(2, '0')
-      return `${y}-${m}-${dd}`
-    }
-    
-    const start = formatDateLocal(weekStart)
-    const end = formatDateLocal(new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000))
-    
-    try {
-      const data = await getLessons(start, end)
-      console.debug('[LessonCalendar] fetched lessons count=', Array.isArray(data) ? data.length : 0)
-      setLessons(data)
-    } catch (error) {
-      console.error('[LessonCalendar] Error fetching lessons:', error)
-    }
-  }
 
   function prevWeek() {
     setWeekStart(new Date(weekStart.getTime() - 7 * 24 * 60 * 60 * 1000))

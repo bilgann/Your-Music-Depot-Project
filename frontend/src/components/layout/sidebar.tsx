@@ -30,7 +30,7 @@ const NavItems: NavItem[] = [
     { label: "Students", path: "/students" },
     { label: "Instructors", path: "/instructors" },
     { label: "Rooms", path: "/rooms" },
-    { label: "Invoices", path: "/invoices" },
+    { label: "Payments", path: "/payments" },
     { label: "Settings", path: "/settings" },
 
 ];
@@ -43,7 +43,7 @@ export const SideBar: FC = () => {
         <aside className='sidebar-container'>
             <nav>
                 {NavItems.map((item) => {
-                    const isActive = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
+                    const isActive = pathname === item.path;
 
                     return (
                         <Link

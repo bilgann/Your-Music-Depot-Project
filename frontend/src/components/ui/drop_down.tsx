@@ -22,8 +22,8 @@ interface DropdownProps {
   labelKey?: string;
   valueKey?: string;
   placeholder?: string;
-  value: any;
-  onChange: (value: any) => void;
+  value: string;
+  onChange: (value: string) => void;
 }
 
 const Dropdown: React.FC<DropdownProps> = ({

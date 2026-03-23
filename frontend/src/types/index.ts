@@ -21,11 +21,11 @@ export interface FormConfig {
 }
 
 export interface FormData {
-    [key: string]: any;
+    [key: string]: string | number | undefined;
 }
 
 export interface DropdownOption {
-    [key: string]: any;
+    [key: string]: string | number;
 }
 
 export type Lesson = {
