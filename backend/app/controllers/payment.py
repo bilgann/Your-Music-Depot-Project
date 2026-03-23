@@ -27,19 +27,18 @@ def get_payment(payment_id):
 
 
 @payment_bp.route("", methods=["POST"])
-def create_payment():
+def record_payment():
+    """
+    POST /api/payments
+    Body: { invoice_id, amount, payment_method?, paid_on?, notes? }
+    Validates the payment, inserts the record, updates invoice amount_paid,
+    and sets status to 'Paid' when the balance is fully covered.
+    """
     try:
-        data = svc.create_payment(request.get_json())
-        return jsonify(ResponseContract(True, "Payment created.", data).to_dict()), 201
-    except Exception as e:
-        return jsonify(ResponseContract(False, str(e)).to_dict()), 500
-
-
-@payment_bp.route("/<payment_id>", methods=["PUT"])
-def update_payment(payment_id):
-    try:
-        data = svc.update_payment(payment_id, request.get_json())
-        return jsonify(ResponseContract(True, "Payment updated.", data).to_dict()), 200
+        data = svc.record_payment(request.get_json())
+        return jsonify(ResponseContract(True, "Payment recorded.", data).to_dict()), 201
+    except ValueError as e:
+        return jsonify(ResponseContract(False, str(e)).to_dict()), 422
     except Exception as e:
         return jsonify(ResponseContract(False, str(e)).to_dict()), 500
 
