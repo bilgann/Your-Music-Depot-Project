@@ -6,6 +6,7 @@ from flask.json.provider import DefaultJSONProvider
 from flask_cors import CORS
 
 from backend.app.contracts.response import ResponseContract
+from backend.app.controllers.audit import audit_bp
 from backend.app.controllers.instructor import instructor_bp
 from backend.app.controllers.invoice import invoice_bp
 from backend.app.controllers.lesson import lesson_bp
@@ -44,6 +45,7 @@ def build_app():
     Auth(logger=logger)
 
     app.register_blueprint(user_bp)
+    app.register_blueprint(audit_bp)
     app.register_blueprint(instructor_bp)
     app.register_blueprint(student_bp)
     app.register_blueprint(room_bp)

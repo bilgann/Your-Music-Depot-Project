@@ -1,13 +1,16 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, g, request, jsonify
 
+from backend.app.contracts.auth_middleware import require_auth
 from backend.app.contracts.response import ResponseContract
 from backend.app.contracts.validation import error_response, validate
 import backend.app.services.lesson as svc
+import backend.app.services.audit as audit
 
 lesson_bp = Blueprint("lessons", __name__, url_prefix="/api/lessons")
 
 
 @lesson_bp.route("", methods=["GET"])
+@require_auth
 def list_lessons():
     try:
         week_start = request.args.get("weekStart")
@@ -23,6 +26,7 @@ def list_lessons():
 
 
 @lesson_bp.route("/<lesson_id>", methods=["GET"])
+@require_auth
 def get_lesson(lesson_id):
     try:
         data = svc.get_lesson_by_id(lesson_id)
@@ -34,29 +38,38 @@ def get_lesson(lesson_id):
 
 
 @lesson_bp.route("", methods=["POST"])
+@require_auth
 def create_lesson():
     try:
         body = request.get_json()
         validate(body, "lesson")
-        return jsonify(ResponseContract(True, "Lesson created.", svc.create_lesson(body)).to_dict()), 201
+        result = svc.create_lesson(body)
+        audit.log(g.user.id, "CREATE", "lesson",
+                  result[0].get("lesson_id") if result else None, None, body)
+        return jsonify(ResponseContract(True, "Lesson created.", result).to_dict()), 201
     except Exception as e:
         return error_response(e)
 
 
 @lesson_bp.route("/<lesson_id>", methods=["PUT"])
+@require_auth
 def update_lesson(lesson_id):
     try:
         body = request.get_json()
         validate(body, "lesson", partial=True)
-        return jsonify(ResponseContract(True, "Lesson updated.", svc.update_lesson(lesson_id, body)).to_dict()), 200
+        result = svc.update_lesson(lesson_id, body)
+        audit.log(g.user.id, "UPDATE", "lesson", lesson_id, None, body)
+        return jsonify(ResponseContract(True, "Lesson updated.", result).to_dict()), 200
     except Exception as e:
         return error_response(e)
 
 
 @lesson_bp.route("/<lesson_id>", methods=["DELETE"])
+@require_auth
 def delete_lesson(lesson_id):
     try:
         svc.delete_lesson(lesson_id)
+        audit.log(g.user.id, "DELETE", "lesson", lesson_id)
         return jsonify(ResponseContract(True, "Lesson deleted.").to_dict()), 200
     except Exception as e:
         return error_response(e)
