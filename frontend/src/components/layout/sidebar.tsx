@@ -1,23 +1,9 @@
-/* Frontend:
-
-Page:
-
-Home Page
-Schedule Page
-Clients/Students
-Instructor
-Rooms Page
-Payments Page
-    Payments History Page
-Settings Page
-
-
-*/
 "use client";
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { FC } from "react";
+import { useAuth } from "@/context/auth";
 
 interface NavItem {
     label: string;
@@ -25,26 +11,24 @@ interface NavItem {
 }
 
 const NavItems: NavItem[] = [
-    { label: "Home", path: '/home'},
+    { label: "Home", path: "/home" },
     { label: "Schedule", path: "/schedule" },
     { label: "Students", path: "/students" },
     { label: "Instructors", path: "/instructors" },
     { label: "Rooms", path: "/rooms" },
     { label: "Payments", path: "/payments" },
     { label: "Settings", path: "/settings" },
-
 ];
 
 export const SideBar: FC = () => {
-
     const pathname = usePathname();
+    const { clearToken } = useAuth();
 
     return (
-        <aside className='sidebar-container'>
+        <aside className="sidebar-container">
             <nav>
                 {NavItems.map((item) => {
                     const isActive = pathname === item.path;
-
                     return (
                         <Link
                             key={item.path}
@@ -56,6 +40,14 @@ export const SideBar: FC = () => {
                     );
                 })}
             </nav>
+
+            <button
+                className="sidebar-logout"
+                onClick={() => void clearToken()}
+                type="button"
+            >
+                Log out
+            </button>
         </aside>
     );
-}
+};

@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import config from "@/config";
+import { apiJson } from "@/lib/api";
 
 type Lesson = {
     lesson_id: number;
@@ -16,41 +15,30 @@ type Lesson = {
 };
 
 export default function HomePage() {
-    const router = useRouter();
     const [todayCount, setTodayCount] = useState<number | null>(null);
     const [nextLesson, setNextLesson] = useState<Lesson | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            router.replace("/login");
-            return;
-        }
-
         async function fetchLessons() {
             try {
-                const res = await fetch(`${config.API_BASE}/api/lessons`, {
-                    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-                });
-                if (!res.ok) throw new Error("Failed to load lessons.");
-                const body = await res.json();
-                const lessons: Lesson[] = body.data ?? [];
-
+                const lessons = await apiJson<Lesson[]>("/api/lessons");
                 const now = new Date();
                 const todayStr = now.toISOString().slice(0, 10);
 
-                const todayLessons = lessons.filter((l) =>
-                    l.start_time?.startsWith(todayStr)
+                setTodayCount(
+                    lessons.filter((l) => l.start_time?.startsWith(todayStr)).length
                 );
-                setTodayCount(todayLessons.length);
-
                 const upcoming = lessons
                     .filter((l) => new Date(l.start_time) > now)
-                    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+                    .sort(
+                        (a, b) =>
+                            new Date(a.start_time).getTime() -
+                            new Date(b.start_time).getTime()
+                    );
                 setNextLesson(upcoming[0] ?? null);
-            } catch (e) {
+            } catch {
                 setError("Could not load lesson data.");
             } finally {
                 setLoading(false);
@@ -58,14 +46,21 @@ export default function HomePage() {
         }
 
         fetchLessons();
-    }, [router]);
+    }, []);
 
     function formatTime(iso: string) {
-        return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        return new Date(iso).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+        });
     }
 
     function formatDate(iso: string) {
-        return new Date(iso).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+        return new Date(iso).toLocaleDateString([], {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+        });
     }
 
     return (
@@ -77,9 +72,7 @@ export default function HomePage() {
             <div className="dashboard-stats">
                 <div className="stat-card">
                     <span className="stat-label">Today&apos;s Lessons</span>
-                    <span className="stat-value">
-                        {loading ? "—" : todayCount}
-                    </span>
+                    <span className="stat-value">{loading ? "—" : todayCount}</span>
                 </div>
 
                 <div className="stat-card">
@@ -88,8 +81,12 @@ export default function HomePage() {
                         <span className="stat-value">—</span>
                     ) : nextLesson ? (
                         <div className="stat-next">
-                            <span className="stat-value">{formatTime(nextLesson.start_time)}</span>
-                            <span className="stat-sub">{formatDate(nextLesson.start_time)}</span>
+                            <span className="stat-value">
+                                {formatTime(nextLesson.start_time)}
+                            </span>
+                            <span className="stat-sub">
+                                {formatDate(nextLesson.start_time)}
+                            </span>
                         </div>
                     ) : (
                         <span className="stat-value stat-empty">None scheduled</span>
