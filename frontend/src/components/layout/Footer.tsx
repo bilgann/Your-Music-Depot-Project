@@ -6,8 +6,8 @@ Footer
 
 export default function Footer() {
     return (
-        <div>
-            <p> ©YourMusicDepot2026 </p>
-        </div>
+        <footer className="app-footer">
+            <p>&copy; Your Music Depot 2026</p>
+        </footer>
     );
 }
