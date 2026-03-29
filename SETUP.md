@@ -85,136 +85,11 @@ Supabase is the database that stores all your data (students, lessons, payments,
 
 ## Step 3 — Create the Database Tables
 
-Run the following SQL in the Supabase **SQL Editor** (left sidebar → SQL Editor → New query). Run each block separately.
+The complete schema is in `supabase/migrations/20260329000000_initial_schema.sql`.
 
-### Core tables
+Open the Supabase **SQL Editor** (left sidebar → SQL Editor → New query), paste the entire contents of that file, and click **Run**.
 
-```sql
--- User accounts
-CREATE TABLE IF NOT EXISTS app_user (
-    user_id   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    username  text UNIQUE NOT NULL,
-    password  text NOT NULL,   -- SHA-256 hex digest
-    role      text NOT NULL DEFAULT 'instructor' CHECK (role IN ('admin', 'instructor'))
-);
-
--- Audit log (tracks all data changes)
-CREATE TABLE IF NOT EXISTS audit_log (
-    id          bigserial PRIMARY KEY,
-    user_id     uuid,
-    action      text NOT NULL CHECK (action IN ('CREATE', 'UPDATE', 'DELETE', 'UPSERT')),
-    entity_type text NOT NULL,
-    entity_id   text,
-    old_value   jsonb,
-    new_value   jsonb,
-    created_at  timestamptz NOT NULL DEFAULT now()
-);
-```
-
-### Scheduling tables
-
-```sql
--- Course: the top-level program aggregate (group classes or private lesson series)
-CREATE TABLE IF NOT EXISTS course (
-    course_id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    name                 text NOT NULL,
-    description          text,
-    room_id              uuid REFERENCES room(room_id),
-    instructor_ids       uuid[] NOT NULL DEFAULT '{}',
-    student_ids          uuid[] NOT NULL DEFAULT '{}',
-    period_start         date NOT NULL,
-    period_end           date NOT NULL,
-    recurrence           text NOT NULL,   -- cron expression or ISO date
-    start_time           text NOT NULL,   -- HH:MM
-    end_time             text NOT NULL,
-    rate                 jsonb,           -- { charge_type, amount, currency }
-    required_instruments jsonb NOT NULL DEFAULT '[]',
-    capacity             int,
-    skill_range          jsonb,           -- { min_level, max_level }
-    status               text NOT NULL DEFAULT 'draft'
-                             CHECK (status IN ('draft','active','completed','cancelled')),
-    created_at           timestamptz NOT NULL DEFAULT now()
-);
-
--- Lesson occurrence: a single materialised session (generated from lesson or course template)
-CREATE TABLE IF NOT EXISTS lesson_occurrence (
-    occurrence_id    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    lesson_id        uuid REFERENCES lesson(lesson_id),
-    course_id        uuid REFERENCES course(course_id),
-    date             date NOT NULL,
-    start_time       text NOT NULL,
-    end_time         text NOT NULL,
-    instructor_id    uuid REFERENCES instructor(instructor_id),
-    room_id          uuid REFERENCES room(room_id),
-    status           text NOT NULL DEFAULT 'Scheduled',
-    rate             jsonb,
-    is_rescheduled   boolean NOT NULL DEFAULT false,
-    cancelled_reason text,
-    CONSTRAINT occurrence_has_source CHECK (
-        (lesson_id IS NOT NULL) != (course_id IS NOT NULL)
-        OR (lesson_id IS NOT NULL AND course_id IS NOT NULL)
-    )
-);
-```
-
-### Compatibility and credential tables
-
-```sql
--- Instructor credentials (musical qualifications, CPR, special-ed certs, etc.)
-CREATE TABLE IF NOT EXISTS credential (
-    credential_id   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    instructor_id   uuid NOT NULL REFERENCES instructor(instructor_id),
-    credential_type text NOT NULL DEFAULT 'musical',
-    proficiencies   jsonb NOT NULL DEFAULT '[]',
-    valid_from      date,
-    valid_until     date,
-    issued_by       text,
-    issued_date     date
-);
-
--- Per-pair instructor/student compatibility overrides
-CREATE TABLE IF NOT EXISTS instructor_student_compatibility (
-    compatibility_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    instructor_id    uuid NOT NULL REFERENCES instructor(instructor_id),
-    student_id       uuid NOT NULL REFERENCES student(student_id),
-    verdict          text NOT NULL CHECK (verdict IN ('blocked','disliked','preferred','required')),
-    reason           text NOT NULL DEFAULT '',
-    initiated_by     text NOT NULL CHECK (initiated_by IN ('student','instructor','admin')),
-    created_at       timestamptz NOT NULL DEFAULT now()
-);
-```
-
-### Update existing tables
-
-```sql
--- lesson_enrollment now links to an occurrence, not a lesson directly
-ALTER TABLE lesson_enrollment
-    DROP COLUMN IF EXISTS lesson_id,
-    ADD COLUMN IF NOT EXISTS occurrence_id uuid REFERENCES lesson_occurrence(occurrence_id);
-
--- lesson template gets student roster and optional course link
-ALTER TABLE lesson
-    ADD COLUMN IF NOT EXISTS student_ids uuid[] NOT NULL DEFAULT '{}',
-    ADD COLUMN IF NOT EXISTS course_id   uuid REFERENCES course(course_id);
-
--- student gets age (used for instructor age-restriction checks) and teaching requirements
-ALTER TABLE student
-    ADD COLUMN IF NOT EXISTS age          int,
-    ADD COLUMN IF NOT EXISTS requirements jsonb NOT NULL DEFAULT '[]';
-
--- instructor gets teaching restrictions (min/max student age)
-ALTER TABLE instructor
-    ADD COLUMN IF NOT EXISTS restrictions jsonb NOT NULL DEFAULT '[]';
-
--- invoice_line gets item_type to support non-lesson charges
-ALTER TABLE invoice_line
-    ADD COLUMN IF NOT EXISTS item_type         text NOT NULL DEFAULT 'lesson',
-    ADD COLUMN IF NOT EXISTS attendance_status text;
-
--- credit_transaction gets payment_method
-ALTER TABLE credit_transaction
-    ADD COLUMN IF NOT EXISTS payment_method text;
-```
+The migration creates all tables from scratch (it drops any existing tables first, so it is safe to re-run on a fresh project).
 
 ---
 
@@ -236,7 +111,7 @@ Replace `YourPasswordHere` with the password you want. Copy the long string prin
 In the Supabase **SQL Editor**, run:
 
 ```sql
-INSERT INTO app_user (username, password, role)
+INSERT INTO app_user (username, password_hash, role)
 VALUES ('your_username', 'paste_hash_here', 'admin');
 ```
 
