@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiJson, apiFetch } from "@/lib/api";
+import DataState from "@/components/ui/data_state";
 
 type Student = {
     student_id: string;
@@ -108,13 +109,7 @@ export default function StudentsPage() {
                 <button className="btn btn-primary" onClick={openAdd}>+ Add Student</button>
             </div>
 
-            {error && <p className="table-error">{error}</p>}
-
-            {loading ? (
-                <p className="table-loading">Loading students...</p>
-            ) : students.length === 0 ? (
-                <p className="table-empty">No students found. Add one to get started.</p>
-            ) : (
+            <DataState loading={loading} error={error} empty={students.length === 0} emptyMessage="No students found. Add one to get started.">
                 <div className="data-table-wrapper">
                     <table className="data-table">
                         <thead>
@@ -142,7 +137,7 @@ export default function StudentsPage() {
                         </tbody>
                     </table>
                 </div>
-            )}
+            </DataState>
 
             {showModal && (
                 <div className="modal-overlay" onClick={() => setShowModal(false)}>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiJson, apiFetch } from "@/lib/api";
+import DataState from "@/components/ui/data_state";
 
 type Person = {
     person_id: string;
@@ -101,12 +102,9 @@ export default function ClientDetailPage() {
         }
     }
 
-    if (loading) return <main className="page-client-detail"><p className="table-loading">Loading...</p></main>;
-    if (error) return <main className="page-client-detail"><p className="table-error">{error}</p></main>;
-    if (!client) return <main className="page-client-detail"><p className="table-empty">Client not found.</p></main>;
-
     return (
         <main className="page-client-detail">
+        <DataState loading={loading} error={error} empty={!client} emptyMessage="Client not found.">
             <div className="page-header">
                 <div className="client-detail-back">
                     <button className="btn-back" onClick={() => router.push("/clients")}>&#8592; Clients</button>
@@ -268,6 +266,7 @@ export default function ClientDetailPage() {
                     </div>
                 </div>
             )}
+        </DataState>
         </main>
     );
 }

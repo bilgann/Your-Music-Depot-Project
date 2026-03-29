@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiJson, apiFetch } from "@/lib/api";
+import DataState from "@/components/ui/data_state";
 
 type Payment = {
     payment_id: number;
@@ -99,13 +100,7 @@ export default function PaymentsPage() {
                 <button className="btn btn-primary" onClick={openRecord}>+ Record Payment</button>
             </div>
 
-            {error && <p className="table-error">{error}</p>}
-
-            {loading ? (
-                <p className="table-loading">Loading payments...</p>
-            ) : payments.length === 0 ? (
-                <p className="table-empty">No payments recorded yet.</p>
-            ) : (
+            <DataState loading={loading} error={error} empty={payments.length === 0} emptyMessage="No payments recorded yet.">
                 <div className="data-table-wrapper">
                     <table className="data-table">
                         <thead>
@@ -138,7 +133,7 @@ export default function PaymentsPage() {
                         </tbody>
                     </table>
                 </div>
-            )}
+            </DataState>
 
             {showModal && (
                 <div className="modal-overlay" onClick={() => setShowModal(false)}>

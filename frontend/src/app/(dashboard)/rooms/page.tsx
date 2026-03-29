@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiJson, apiFetch } from "@/lib/api";
+import DataState from "@/components/ui/data_state";
 
 type Room = {
     room_id: number;
@@ -96,13 +97,7 @@ export default function RoomsPage() {
                 <button className="btn btn-primary" onClick={openAdd}>+ Add Room</button>
             </div>
 
-            {error && <p className="table-error">{error}</p>}
-
-            {loading ? (
-                <p className="table-loading">Loading rooms...</p>
-            ) : rooms.length === 0 ? (
-                <p className="table-empty">No rooms found. Add one to get started.</p>
-            ) : (
+            <DataState loading={loading} error={error} empty={rooms.length === 0} emptyMessage="No rooms found. Add one to get started.">
                 <div className="data-table-wrapper">
                     <table className="data-table">
                         <thead>
@@ -128,7 +123,7 @@ export default function RoomsPage() {
                         </tbody>
                     </table>
                 </div>
-            )}
+            </DataState>
 
             {showModal && (
                 <div className="modal-overlay" onClick={() => setShowModal(false)}>
