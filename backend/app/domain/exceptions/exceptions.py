@@ -28,6 +28,11 @@ from backend.app.domain.exceptions.scheduling import (
     InstructorUnavailableError,
     RoomUnavailableError,
 )
+from backend.app.domain.exceptions.compatibility import (
+    InstructorBlockedError,
+    InstructorRequirementNotMetError,
+    InstructorRestrictionViolatedError,
+)
 
 __all__ = [
     "ValidationError",
@@ -42,4 +47,7 @@ __all__ = [
     "InvalidPaymentAmountError",
     "InstructorUnavailableError",
     "RoomUnavailableError",
+    "InstructorBlockedError",
+    "InstructorRequirementNotMetError",
+    "InstructorRestrictionViolatedError",
 ]

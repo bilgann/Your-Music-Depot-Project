@@ -19,12 +19,19 @@ from backend.app.domain.errors.scheduling import (
     ROOM_UNAVAILABLE,
     MESSAGES as SCHEDULING_MESSAGES,
 )
+from backend.app.domain.errors.compatibility import (
+    INSTRUCTOR_BLOCKED,
+    INSTRUCTOR_REQUIREMENT_NOT_MET,
+    INSTRUCTOR_RESTRICTION_VIOLATED,
+    MESSAGES as COMPATIBILITY_MESSAGES,
+)
 
 # Combined message lookup — merge all subdomain message dicts.
 MESSAGES: dict[str, str] = {
     **BASE_MESSAGES,
     **FINANCIAL_MESSAGES,
     **SCHEDULING_MESSAGES,
+    **COMPATIBILITY_MESSAGES,
 }
 
 __all__ = [
@@ -43,6 +50,10 @@ __all__ = [
     # codes — scheduling
     "INSTRUCTOR_UNAVAILABLE",
     "ROOM_UNAVAILABLE",
+    # codes — compatibility
+    "INSTRUCTOR_BLOCKED",
+    "INSTRUCTOR_REQUIREMENT_NOT_MET",
+    "INSTRUCTOR_RESTRICTION_VIOLATED",
     # combined lookup
     "MESSAGES",
 ]

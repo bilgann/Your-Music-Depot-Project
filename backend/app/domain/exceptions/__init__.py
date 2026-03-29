@@ -16,6 +16,11 @@ from backend.app.domain.exceptions.scheduling import (
     InstructorUnavailableError,
     RoomUnavailableError,
 )
+from backend.app.domain.exceptions.compatibility import (
+    InstructorBlockedError,
+    InstructorRequirementNotMetError,
+    InstructorRestrictionViolatedError,
+)
 
 __all__ = [
     # base
@@ -33,4 +38,8 @@ __all__ = [
     # scheduling
     "InstructorUnavailableError",
     "RoomUnavailableError",
+    # compatibility
+    "InstructorBlockedError",
+    "InstructorRequirementNotMetError",
+    "InstructorRestrictionViolatedError",
 ]
