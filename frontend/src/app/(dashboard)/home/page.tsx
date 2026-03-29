@@ -23,11 +23,11 @@ export default function HomePage() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            router.replace("/login");
-            return;
-        }
+        // const token = localStorage.getItem("token");
+        // if (!token) {
+        //     router.replace("/login");
+        //     return;
+        // }
 
         async function fetchLessons() {
             try {

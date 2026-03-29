@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 14, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/bilga/OneDrive/Desktop/Your_Music_Depot/frontend/src/app/page.tsx"],"sourcesContent":["import Layout  from \"@/app/layout\";\r\n\r\nexport default function Home() {\r\n  return (\r\n    <Layout>\r\n      <main className=\"page-home\">\r\n        <h1>Home Page</h1>\r\n      </main>\r\n    </Layout>\r\n  );\r\n}\r\n"],"names":[],"mappings":";;;;;AAAA;;;AAEe,SAAS;IACtB,qBACE,iQAAC,4IAAM;kBACL,cAAA,iQAAC;YAAK,WAAU;sBACd,cAAA,iQAAC;0BAAG;;;;;;;;;;;;;;;;AAIZ"}}]
+}

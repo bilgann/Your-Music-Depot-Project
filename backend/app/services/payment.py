@@ -1,5 +1,6 @@
 from backend.app.singletons.database import DatabaseConnection
-
+from flask import Flask, jsonify, request
+from typing import Any, Dict, List, Optional, Tuple
 
 def _db():
     return DatabaseConnection().client
@@ -21,65 +22,307 @@ def delete_payment(payment_id):
 
 # ── Recording ─────────────────────────────────────────────────────────────────
 
-def record_payment(data: dict) -> dict:
-    """
-    Validate and record a payment, then update the invoice's amount_paid.
-    Sets invoice status to 'Paid' when the full balance is covered.
 
-    Raises ValueError for any validation failure.
-    """
-    invoice_id = data.get("invoice_id")
-    amount = data.get("amount")
+@app.route('/api/students')
+def api_students():
+    return students()
+
+
+@app.route('/api/instructors')
+def api_instructors():
+    return instructors()
+
+
+@app.route('/api/rooms')
+def api_rooms():
+    return rooms()
+
+
+@app.route('/api/invoices', methods=['GET'])
+def api_invoices():
+    status_filter = _normalize_status(request.args.get('status', '')) if request.args.get('status') else None
+    include_line_items = request.args.get('includeLineItems', 'false').lower() == 'true'
+
+    response = _db().table(_get_invoice_table()).select('*').execute()
+    invoices = response.data or []
+
+    serialized = [_serialize_invoice(invoice, include_line_items=include_line_items) for invoice in invoices]
+    if status_filter:
+        serialized = [invoice for invoice in serialized if invoice['status'] == status_filter]
+
+    totals = {
+        'total_invoices': len(serialized),
+        'pending': sum(1 for invoice in serialized if invoice['status'] == 'Pending'),
+        'paid': sum(1 for invoice in serialized if invoice['status'] == 'Paid'),
+        'cancelled': sum(1 for invoice in serialized if invoice['status'] == 'Cancelled'),
+        'outstanding_balance': round(sum(invoice['outstanding_balance'] for invoice in serialized), 2),
+    }
+
+    return jsonify({'data': serialized, 'summary': totals})
+
+
+@app.route('/api/invoices/<int:invoice_id>/line-items', methods=['GET'])
+def api_invoice_line_items(invoice_id: int):
+    invoice = _query_invoice_by_id(invoice_id)
+    if not invoice:
+        return jsonify({'error': 'Invoice not found'}), 404
+
+    line_items = _fetch_line_items(invoice_id)
+    return jsonify({'invoice_id': invoice_id, 'data': line_items})
+
+
+@app.route('/api/invoices/outstanding-balance', methods=['GET'])
+def api_outstanding_balance():
+    response = _db().table(_get_invoice_table()).select('*').execute()
+    invoices = response.data or []
+    serialized = [_serialize_invoice(invoice, include_line_items=False) for invoice in invoices]
+
+    outstanding = [invoice for invoice in serialized if invoice['status'] == 'Pending']
+    total_outstanding = round(sum(invoice['outstanding_balance'] for invoice in outstanding), 2)
+
+    return jsonify({
+        'data': outstanding,
+        'total_outstanding_balance': total_outstanding,
+    })
+
+
+@app.route('/api/payments', methods=['GET'])
+def api_payments_get():
+    response = _db().table(_get_payment_table()).select('*').order('created_at', desc=True).execute()
+    return jsonify(response.data or [])
+
+
+def _insert_payment(payload: Dict[str, Any]) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    payload_variants = [
+        payload,
+        {
+            'invoice_id': payload['invoice_id'],
+            'amount': payload['amount'],
+            'payment_date': payload['paid_on'],
+            'payment_method': payload['payment_method'],
+            'notes': payload.get('notes'),
+        },
+        {
+            'invoice_id': payload['invoice_id'],
+            'amount_paid': payload['amount'],
+            'paid_on': payload['paid_on'],
+            'method': payload['payment_method'],
+            'notes': payload.get('notes'),
+        },
+    ]
+
+    last_error = None
+    for item in payload_variants:
+        try:
+            response = _db().table(_get_payment_table()).insert(item).execute()
+            rows = response.data or []
+            if rows:
+                return rows[0], None
+        except Exception as exc:
+            last_error = str(exc)
+
+    return None, last_error or 'Failed to insert payment'
+
+
+@app.route('/api/payments', methods=['POST'])
+def api_payments_post():
+    data = request.get_json(silent=True) or {}
+
+    invoice_id = data.get('invoice_id')
+    amount = _to_float(data.get('amount'))
+    payment_method = (data.get('payment_method') or 'Card').strip()
+    paid_on = data.get('paid_on') or data.get('payment_date')
 
     if not invoice_id:
-        raise ValueError("invoice_id is required.")
-    if amount is None or float(amount) <= 0:
-        raise ValueError("amount must be greater than 0.")
+        return jsonify({'error': 'invoice_id is required'}), 400
+    if amount <= 0:
+        return jsonify({'error': 'amount must be greater than 0'}), 400
 
-    amount = float(amount)
+    invoice = _query_invoice_by_id(int(invoice_id))
+    if not invoice:
+        return jsonify({'error': 'Invoice not found'}), 404
 
-    # Fetch invoice
-    rows = _db().table("invoice").select("*").eq("invoice_id", invoice_id).execute().data
-    if not rows:
-        raise ValueError("Invoice not found.")
-    invoice = rows[0]
+    normalized_invoice = _serialize_invoice(invoice, include_line_items=False)
+    if normalized_invoice['status'] == 'Cancelled':
+        return jsonify({'error': 'Cannot record payment for a cancelled invoice'}), 400
+    if normalized_invoice['outstanding_balance'] <= 0:
+        return jsonify({'error': 'Invoice is already fully paid'}), 400
 
-    if invoice["status"] == "Cancelled":
-        raise ValueError("Cannot pay a cancelled invoice.")
-    if invoice["status"] == "Paid":
-        raise ValueError("Invoice is already fully paid.")
+    if amount > normalized_invoice['outstanding_balance']:
+        return jsonify({'error': 'Payment amount exceeds outstanding balance'}), 400
 
-    total = float(invoice.get("total_amount", 0))
-    already_paid = float(invoice.get("amount_paid", 0))
-    outstanding = total - already_paid
+    payment_payload = {
+        'invoice_id': int(invoice_id),
+        'amount': round(amount, 2),
+        'payment_method': payment_method,
+        'paid_on': paid_on,
+        'notes': data.get('notes'),
+    }
 
-    if amount > outstanding:
-        raise ValueError(
-            f"Payment of {amount} exceeds outstanding balance of {outstanding:.2f}."
+    created_payment, insert_error = _insert_payment(payment_payload)
+    if insert_error:
+        return jsonify({'error': insert_error}), 500
+
+    updated_invoice = _update_invoice_payment_totals(int(invoice_id), amount)
+
+    return jsonify({
+        'payment': created_payment,
+        'invoice': _serialize_invoice(updated_invoice or invoice, include_line_items=False),
+    }), 201
+
+
+def _to_float(value: Any, default: float = 0.0) -> float:
+    try:
+        if value is None:
+            return default
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _pick_first(record: Dict[str, Any], keys: List[str], default: Any = None) -> Any:
+    for key in keys:
+        if key in record and record[key] is not None:
+            return record[key]
+    return default
+
+
+def _normalize_status(raw_status: Any) -> str:
+    text = str(raw_status or '').strip().lower()
+    if text == 'paid':
+        return 'Paid'
+    if text == 'cancelled' or text == 'canceled':
+        return 'Cancelled'
+    return 'Pending'
+
+
+_invoice_table_cache = None
+_payment_table_cache = None
+
+
+def _find_existing_table(candidates: List[str]) -> str:
+    for table in candidates:
+        try:
+            _db().table(table).select('*').limit(1).execute()
+            return table
+        except Exception:
+            continue
+    return candidates[0]
+
+
+def _get_invoice_table() -> str:
+    global _invoice_table_cache
+    if _invoice_table_cache is None:
+        _invoice_table_cache = _find_existing_table(['invoice', 'invoices'])
+    return _invoice_table_cache
+
+
+def _get_payment_table() -> str:
+    global _payment_table_cache
+    if _payment_table_cache is None:
+        _payment_table_cache = _find_existing_table(['payment', 'payments'])
+    return _payment_table_cache
+
+
+def _query_invoice_by_id(invoice_id: int) -> Optional[Dict[str, Any]]:
+    id_columns = ['invoice_id', 'id']
+    for column in id_columns:
+        try:
+            response = _db().table(_get_invoice_table()).select('*').eq(column, invoice_id).limit(1).execute()
+            rows = response.data or []
+            if rows:
+                return rows[0]
+        except Exception:
+            continue
+    return None
+
+
+def _fetch_line_items(invoice_id: int) -> List[Dict[str, Any]]:
+    line_item_tables = ['invoice_line_item', 'invoice_line_items', 'invoice_item', 'line_item', 'line_items']
+    invoice_columns = ['invoice_id', 'invoiceId', 'id_invoice']
+
+    for table in line_item_tables:
+        for column in invoice_columns:
+            try:
+                response = _db().table(table).select('*').eq(column, invoice_id).execute()
+                rows = response.data or []
+                if rows:
+                    return rows
+            except Exception:
+                continue
+    return []
+
+
+def _serialize_invoice(invoice: Dict[str, Any], include_line_items: bool = False) -> Dict[str, Any]:
+    invoice_id = int(_pick_first(invoice, ['invoice_id', 'id'], 0) or 0)
+    status = _normalize_status(_pick_first(invoice, ['status', 'invoice_status']))
+    line_items: List[Dict[str, Any]] = []
+
+    if include_line_items:
+        embedded = _pick_first(invoice, ['line_items', 'invoice_line_items'], [])
+        if isinstance(embedded, list) and embedded:
+            line_items = embedded
+        else:
+            line_items = _fetch_line_items(invoice_id)
+
+    total_from_invoice = _to_float(_pick_first(invoice, ['total_amount', 'amount_due', 'total', 'invoice_total']))
+    amount_paid = _to_float(_pick_first(invoice, ['amount_paid', 'paid_amount', 'payment_total']))
+
+    if total_from_invoice <= 0 and line_items:
+        total_from_invoice = sum(
+            _to_float(_pick_first(item, ['line_total', 'amount', 'total']))
+            or (_to_float(_pick_first(item, ['quantity'], 1.0)) * _to_float(_pick_first(item, ['unit_price', 'price'], 0.0)))
+            for item in line_items
         )
 
-    # Insert payment record
-    payment = (
-        _db()
-        .table("payment")
-        .insert(
-            {
-                "invoice_id": invoice_id,
-                "amount": amount,
-                "payment_method": data.get("payment_method", "Card"),
-                "paid_on": data.get("paid_on"),
-                "notes": data.get("notes", ""),
-            }
-        )
-        .execute()
-        .data[0]
-    )
+    outstanding_balance = max(total_from_invoice - amount_paid, 0.0)
 
-    # Update invoice totals and status
-    new_amount_paid = already_paid + amount
-    new_status = "Paid" if new_amount_paid >= total else invoice["status"]
-    _db().table("invoice").update(
-        {"amount_paid": new_amount_paid, "status": new_status}
-    ).eq("invoice_id", invoice_id).execute()
+    if status != 'Cancelled':
+        if outstanding_balance <= 0:
+            status = 'Paid'
+        else:
+            status = 'Pending'
 
-    return payment
+    payload = {
+        **invoice,
+        'invoice_id': invoice_id,
+        'student_id': _pick_first(invoice, ['student_id', 'customer_id']),
+        'student_name': _pick_first(invoice, ['student_name', 'customer_name', 'full_name'], 'Unknown Student'),
+        'period_start': _pick_first(invoice, ['period_start', 'periodStart']),
+        'period_end': _pick_first(invoice, ['period_end', 'periodEnd']),
+        'issued_on': _pick_first(invoice, ['issued_on', 'issue_date', 'created_at']),
+        'due_on': _pick_first(invoice, ['due_on', 'due_date']),
+        'status': status,
+        'total_amount': round(total_from_invoice, 2),
+        'amount_paid': round(amount_paid, 2),
+        'outstanding_balance': round(outstanding_balance, 2),
+    }
+
+    if include_line_items:
+        payload['line_items'] = line_items
+
+    return payload
+
+
+def _update_invoice_payment_totals(invoice_id: int, payment_amount: float) -> Optional[Dict[str, Any]]:
+    invoice = _query_invoice_by_id(invoice_id)
+    if not invoice:
+        return None
+
+    current_paid = _to_float(_pick_first(invoice, ['amount_paid', 'paid_amount', 'payment_total']))
+    new_paid = current_paid + payment_amount
+    serialized = _serialize_invoice({**invoice, 'amount_paid': new_paid}, include_line_items=False)
+
+    update_payload = {
+        'amount_paid': round(new_paid, 2),
+        'status': serialized['status'],
+    }
+
+    for id_column in ['invoice_id', 'id']:
+        try:
+            _db().table(_get_invoice_table()).update(update_payload).eq(id_column, invoice_id).execute()
+            return _query_invoice_by_id(invoice_id)
+        except Exception:
+            continue
+
+    return invoice

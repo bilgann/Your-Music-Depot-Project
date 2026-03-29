@@ -67,7 +67,7 @@ class DatabaseConnection:
 
     def _validate_connection(self):
         """
-        Flexible health check: tries to list tables, then fallback to select from 'lessons' table.
+        Flexible health check: tries to list tables, then fallback to select from 'lesson' table.
         Raises ConnectionError if Supabase cannot be reached.
         """
         try:
@@ -76,7 +76,7 @@ class DatabaseConnection:
         except Exception:
             try:
                 # Fallback: simple select from a known table
-                self.client.table("lessons").select("id").limit(1).execute()
+                self.client.table("lesson").select("id").limit(1).execute()
             except Exception as e:
                 self._log_error(f"Supabase connection failed: {e}")
                 raise ConnectionError(f"Failed to connect to Supabase: {e}")

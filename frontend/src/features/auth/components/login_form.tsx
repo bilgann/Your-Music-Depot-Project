@@ -16,11 +16,14 @@ export default function LoginForm() {
         e.preventDefault();
         setError(null);
         setLoading(true);
+        router.push("/home");
+        set
+        /**
         try {
             const res = await login(username, password);
             if (res.success && res.data) {
                 localStorage.setItem("token", res.data);
-                router.push("/home");
+                
             } else {
                 setError(res.message);
             }
@@ -29,6 +32,7 @@ export default function LoginForm() {
         } finally {
             setLoading(false);
         }
+            */
     }
 
     return (

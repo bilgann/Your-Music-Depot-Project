@@ -11,7 +11,7 @@ import { Lesson } from '../../../types/index'
 
 export async function getLessons(weekStart: string, weekEnd: string): Promise<Lesson[]> {
     try {
-        const res = await fetch(`${config.API_BASE}/lessons?start_date=${weekStart}&end_date=${weekEnd}`)
+        const res = await fetch(`/api/lessons?weekStart=${weekStart}&weekEnd=${weekEnd}`)
         if (!res.ok) {
             throw new Error(`Failed to fetch lessons: ${res.statusText}`)
         }
@@ -24,7 +24,7 @@ export async function getLessons(weekStart: string, weekEnd: string): Promise<Le
 
 export async function createLesson(data: Partial<Lesson>): Promise<Lesson> {
     try {
-        const res = await fetch(`${config.API_BASE}/lessons`, {
+        const res = await fetch(`/api/lessons`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -45,7 +45,7 @@ export async function createLesson(data: Partial<Lesson>): Promise<Lesson> {
 
 export async function updateLesson(lessonID: number, data: Partial<Lesson>): Promise<Lesson> {
     try {
-        const res = await fetch(`${config.API_BASE}/lessons/${lessonID}`, {
+        const res = await fetch(`/api/lessons/${lessonID}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -66,7 +66,7 @@ export async function updateLesson(lessonID: number, data: Partial<Lesson>): Pro
 
 export async function deleteLesson(lessonID: number): Promise<void> {
     try {
-        const res = await fetch(`${config.API_BASE}/lessons/${lessonID}`, {
+        const res = await fetch(`/api/lessons/${lessonID}`, {
             method: 'DELETE'
         })
 

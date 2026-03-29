@@ -42,6 +42,24 @@ const ScheduleLessonModal: React.FC<ScheduleLessonModalProps> = ({ existingLesso
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    const start = new Date(formData.start_time)
+    const end = new Date(formData.end_time)
+
+    if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) {
+      alert('Please provide valid start and end times')
+      return
+    }
+
+    // Saturday support: the studio accepts lessons from 9:00 to 15:00 on Saturdays.
+    if (start.getDay() === 6 || end.getDay() === 6) {
+      const startHour = start.getHours() + start.getMinutes() / 60
+      const endHour = end.getHours() + end.getMinutes() / 60
+      if (startHour < 9 || endHour > 15) {
+        alert('Saturday lessons must be scheduled between 9:00 AM and 3:00 PM')
+        return
+      }
+    }
     
     try {
       if (existingLesson) {

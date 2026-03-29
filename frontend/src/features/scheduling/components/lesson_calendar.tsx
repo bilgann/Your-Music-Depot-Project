@@ -40,7 +40,7 @@ import { Lesson } from '../../../types/index'
 import { getLessons, deleteLesson } from '../api/lesson'
 import ScheduleLessonModal from './schedule_lesson_modal'
 
-const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
 function parseISODateToLocal(dstr: string) {
   if (!dstr) return new Date(dstr)
@@ -148,15 +148,15 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
 
   const layoutMap = useMemo(() => {
     const map: Record<number, { col: number, total: number }> = {}
-    const days: Lesson[][] = [[], [], [], [], []]
+    const days: Lesson[][] = [[], [], [], [], [], []]
     
     for (const lesson of lessons) {
       const ld = parseISODateToLocal(lesson.date)
       const dayIdx = (ld.getDay() === 0 ? 6 : ld.getDay() - 1)
-      if (dayIdx >= 0 && dayIdx <= 4) days[dayIdx].push(lesson)
+      if (dayIdx >= 0 && dayIdx <= 5) days[dayIdx].push(lesson)
     }
 
-    for (let dayIdx = 0; dayIdx < 5; dayIdx++) {
+    for (let dayIdx = 0; dayIdx < 6; dayIdx++) {
       const evs = days[dayIdx].map(lesson => {
         const start = lesson.start_time ? new Date(lesson.start_time) : null
         const end = lesson.end_time ? new Date(lesson.end_time) : null
@@ -249,7 +249,7 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
   function renderLesson(lesson: Lesson) {
     const lessonDate = parseISODateToLocal(lesson.date)
     const dayIdx = (lessonDate.getDay() === 0 ? 6 : lessonDate.getDay() - 1)
-    if (dayIdx < 0 || dayIdx > 4) return null
+    if (dayIdx < 0 || dayIdx > 5) return null
 
     const start = lesson.start_time ? new Date(lesson.start_time) : null
     const end = lesson.end_time ? new Date(lesson.end_time) : null
@@ -354,7 +354,7 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
     )
   }
 
-  const days = Array.from({ length: 5 }).map((_, i) => {
+  const days = Array.from({ length: 6 }).map((_, i) => {
     const d = new Date(weekStart)
     d.setDate(d.getDate() + i)
     return d
