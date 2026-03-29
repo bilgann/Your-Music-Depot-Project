@@ -53,6 +53,18 @@ class LessonEnrollment:
         )
 
     @staticmethod
+    def record_attendance(lesson_id, student_id, status):
+        return (
+            DatabaseConnection().client
+            .table("lesson_enrollment")
+            .update({"attendance_status": status})
+            .eq("lesson_id", lesson_id)
+            .eq("student_id", student_id)
+            .execute()
+            .data
+        )
+
+    @staticmethod
     def delete(lesson_id, student_id):
         return (
             DatabaseConnection().client

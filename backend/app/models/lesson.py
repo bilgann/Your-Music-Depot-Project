@@ -45,25 +45,29 @@ class Lesson:
     @staticmethod
     def get_for_student_in_period(student_id, period_start, period_end, statuses: list):
         """
-        Returns all lessons the student is enrolled in within the given period.
-        Uses the lesson_enrollment join table as the source of truth.
+        Returns lessons the student is enrolled in within the period.
+        Each lesson row is augmented with:
+          - attendance_status  (from lesson_enrollment)
+          - attendance_policy  (from the lesson's assigned policy, if any)
         """
         enrollments = (
             DatabaseConnection().client
             .table("lesson_enrollment")
-            .select("lesson_id")
+            .select("lesson_id, attendance_status")
             .eq("student_id", student_id)
             .execute()
             .data
         )
-        lesson_ids = [e["lesson_id"] for e in enrollments]
-        if not lesson_ids:
+        if not enrollments:
             return []
 
-        return (
+        lesson_ids = [e["lesson_id"] for e in enrollments]
+        attendance_map = {e["lesson_id"]: e.get("attendance_status") for e in enrollments}
+
+        lessons = (
             DatabaseConnection().client
             .table("lesson")
-            .select("*")
+            .select("*, attendance_policy(*)")
             .in_("lesson_id", lesson_ids)
             .in_("status", statuses)
             .gte("start_time", period_start)
@@ -71,6 +75,11 @@ class Lesson:
             .execute()
             .data
         )
+
+        for lesson in lessons:
+            lesson["attendance_status"] = attendance_map.get(lesson["lesson_id"])
+
+        return lessons
 
     @staticmethod
     def create(data):

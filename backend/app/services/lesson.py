@@ -46,6 +46,13 @@ def enroll_student(lesson_id, student_id):
     return LessonEnrollment.create(lesson_id, student_id)
 
 
+def record_attendance(lesson_id, student_id, status):
+    existing = LessonEnrollment.get(lesson_id, student_id)
+    if not existing:
+        raise NotFoundError("Enrollment not found.")
+    return LessonEnrollment.record_attendance(lesson_id, student_id, status)
+
+
 def unenroll_student(lesson_id, student_id):
     existing = LessonEnrollment.get(lesson_id, student_id)
     if not existing:

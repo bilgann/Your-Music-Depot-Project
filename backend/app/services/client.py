@@ -42,7 +42,15 @@ def create_client(data):
 
 
 def update_client(client_id, data):
-    return Client.update(client_id, data)
+    data = dict(data)
+    person_fields = {k: data.pop(k) for k in ("name", "email", "phone") if k in data}
+    if person_fields:
+        rows = Client.get(client_id)
+        if rows:
+            Person.update(rows[0]["person_id"], person_fields)
+    if data:
+        Client.update(client_id, data)
+    return Client.get(client_id)
 
 
 def delete_client(client_id):

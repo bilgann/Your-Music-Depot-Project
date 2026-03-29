@@ -1,18 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { apiJson, apiFetch } from "@/lib/api";
 
-type Student = {
-    student_id: string;
-    person_id: string;
-    client_id: string | null;
+type Client = {
+    client_id: string;
     person: {
         person_id: string;
         name: string;
         email: string | null;
         phone: string | null;
     };
+    credits: number;
 };
 
 type FormState = {
@@ -23,29 +23,30 @@ type FormState = {
 
 const emptyForm: FormState = { name: "", email: "", phone: "" };
 
-export default function StudentsPage() {
-    const [students, setStudents] = useState<Student[]>([]);
+export default function ClientsPage() {
+    const router = useRouter();
+    const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showModal, setShowModal] = useState(false);
-    const [editing, setEditing] = useState<Student | null>(null);
+    const [editing, setEditing] = useState<Client | null>(null);
     const [form, setForm] = useState<FormState>(emptyForm);
     const [saving, setSaving] = useState(false);
 
-    async function fetchStudents() {
+    async function fetchClients() {
         try {
             setLoading(true);
-            const data = await apiJson<Student[]>("/api/students");
-            setStudents(data);
+            const data = await apiJson<Client[]>("/api/clients");
+            setClients(data);
             setError(null);
         } catch {
-            setError("Could not load students.");
+            setError("Could not load clients.");
         } finally {
             setLoading(false);
         }
     }
 
-    useEffect(() => { fetchStudents(); }, []);
+    useEffect(() => { fetchClients(); }, []);
 
     function openAdd() {
         setEditing(null);
@@ -53,12 +54,12 @@ export default function StudentsPage() {
         setShowModal(true);
     }
 
-    function openEdit(stu: Student) {
-        setEditing(stu);
+    function openEdit(client: Client) {
+        setEditing(client);
         setForm({
-            name: stu.person.name,
-            email: stu.person.email ?? "",
-            phone: stu.person.phone ?? "",
+            name: client.person.name,
+            email: client.person.email ?? "",
+            phone: client.person.phone ?? "",
         });
         setShowModal(true);
     }
@@ -72,48 +73,48 @@ export default function StudentsPage() {
             if (form.phone) payload.phone = form.phone;
 
             if (editing) {
-                await apiFetch(`/api/students/${editing.student_id}`, {
+                await apiFetch(`/api/clients/${editing.client_id}`, {
                     method: "PUT",
                     body: JSON.stringify(payload),
                 });
             } else {
-                await apiFetch("/api/students", {
+                await apiFetch("/api/clients", {
                     method: "POST",
                     body: JSON.stringify(payload),
                 });
             }
             setShowModal(false);
-            await fetchStudents();
+            await fetchClients();
         } catch {
-            alert("Failed to save student.");
+            alert("Failed to save client.");
         } finally {
             setSaving(false);
         }
     }
 
-    async function handleDelete(id: string) {
-        if (!confirm("Delete this student?")) return;
+    async function handleDelete(client: Client) {
+        if (!confirm(`Delete ${client.person.name}?`)) return;
         try {
-            await apiFetch(`/api/students/${id}`, { method: "DELETE" });
-            await fetchStudents();
+            await apiFetch(`/api/clients/${client.client_id}`, { method: "DELETE" });
+            await fetchClients();
         } catch {
-            alert("Failed to delete student.");
+            alert("Failed to delete client.");
         }
     }
 
     return (
-        <main className="page-students">
+        <main className="page-clients">
             <div className="page-header">
-                <h1>Students</h1>
-                <button className="btn btn-primary" onClick={openAdd}>+ Add Student</button>
+                <h1>Clients</h1>
+                <button className="btn btn-primary" onClick={openAdd}>+ Add Client</button>
             </div>
 
             {error && <p className="table-error">{error}</p>}
 
             {loading ? (
-                <p className="table-loading">Loading students...</p>
-            ) : students.length === 0 ? (
-                <p className="table-empty">No students found. Add one to get started.</p>
+                <p className="table-loading">Loading clients...</p>
+            ) : clients.length === 0 ? (
+                <p className="table-empty">No clients found. Add one to get started.</p>
             ) : (
                 <div className="data-table-wrapper">
                     <table className="data-table">
@@ -122,19 +123,25 @@ export default function StudentsPage() {
                                 <th>Name</th>
                                 <th>Email</th>
                                 <th>Phone</th>
+                                <th>Credits</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {students.map((stu) => (
-                                <tr key={stu.student_id}>
-                                    <td>{stu.person.name}</td>
-                                    <td>{stu.person.email || "--"}</td>
-                                    <td>{stu.person.phone || "--"}</td>
+                            {clients.map((client) => (
+                                <tr
+                                    key={client.client_id}
+                                    className="client-row"
+                                    onClick={() => router.push(`/clients/${client.client_id}`)}
+                                >
+                                    <td>{client.person.name}</td>
+                                    <td>{client.person.email || "--"}</td>
+                                    <td>{client.person.phone || "--"}</td>
+                                    <td>${Number(client.credits ?? 0).toFixed(2)}</td>
                                     <td>
-                                        <div className="actions-cell">
-                                            <button className="btn-icon" onClick={() => openEdit(stu)} title="Edit">&#9998;</button>
-                                            <button className="btn-icon btn-icon--danger" onClick={() => handleDelete(stu.student_id)} title="Delete">&#10005;</button>
+                                        <div className="actions-cell" onClick={(e) => e.stopPropagation()}>
+                                            <button className="btn-icon" onClick={() => openEdit(client)} title="Edit">&#9998;</button>
+                                            <button className="btn-icon btn-icon--danger" onClick={() => handleDelete(client)} title="Delete">&#10005;</button>
                                         </div>
                                     </td>
                                 </tr>
@@ -147,7 +154,7 @@ export default function StudentsPage() {
             {showModal && (
                 <div className="modal-overlay" onClick={() => setShowModal(false)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <h2>{editing ? "Edit Student" : "Add Student"}</h2>
+                        <h2>{editing ? "Edit Client" : "Add Client"}</h2>
                         <form onSubmit={handleSubmit}>
                             <div className="form-field">
                                 <label>Name</label>

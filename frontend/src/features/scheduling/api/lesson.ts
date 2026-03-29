@@ -27,8 +27,8 @@ export async function createLesson(data: Partial<Lesson>): Promise<Lesson> {
     return body.data;
 }
 
-export async function updateLesson(lessonID: number, data: Partial<Lesson>): Promise<Lesson> {
-    const res = await apiFetch(`/api/lessons/${lessonID}`, {
+export async function updateLesson(lessonId: string, data: Partial<Lesson>): Promise<Lesson> {
+    const res = await apiFetch(`/api/lessons/${lessonId}`, {
         method: "PUT",
         body: JSON.stringify(data),
     });
@@ -40,8 +40,8 @@ export async function updateLesson(lessonID: number, data: Partial<Lesson>): Pro
     return body.data;
 }
 
-export async function deleteLesson(lessonID: number): Promise<void> {
-    const res = await apiFetch(`/api/lessons/${lessonID}`, { method: "DELETE" });
+export async function deleteLesson(lessonId: string): Promise<void> {
+    const res = await apiFetch(`/api/lessons/${lessonId}`, { method: "DELETE" });
     if (!res.ok) {
         const err = await res.text();
         throw new Error(`Failed to delete lesson: ${res.status} ${err}`);

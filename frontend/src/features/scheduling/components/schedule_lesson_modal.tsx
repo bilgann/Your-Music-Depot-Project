@@ -1,25 +1,9 @@
 'use client'
 
-/*
-The popup where admin schedules a lesson.
-
-Example UI fields:
-
-Student
-Instrument
-Instructor
-Room
-Day
-Start Time
-End Time
-Lesson Type
-
-Submit → POST request.
-*/
-
 import React, { useState, useEffect } from 'react'
-import { Lesson } from '../../../types/index'
+import { Lesson, Instructor, Room } from '../../../types/index'
 import { createLesson, updateLesson } from '../api/lesson'
+import { apiJson } from '@/lib/api'
 
 interface ScheduleLessonModalProps {
   existingLesson?: Lesson
@@ -28,26 +12,39 @@ interface ScheduleLessonModalProps {
 }
 
 const ScheduleLessonModal: React.FC<ScheduleLessonModalProps> = ({ existingLesson, onSaved, onClose }) => {
+  const [instructors, setInstructors] = useState<Instructor[]>([])
+  const [rooms, setRooms] = useState<Room[]>([])
+
   const [formData, setFormData] = useState({
-    instructorID: existingLesson?.instructorID || 0,
-    studentID: existingLesson?.studentID || 0,
-    roomID: existingLesson?.roomID || 0,
-    instrument: existingLesson?.instrument || '',
-    lesson_type: existingLesson?.lesson_type || 'private',
-    date: existingLesson?.date || '',
-    start_time: existingLesson?.start_time || '',
-    end_time: existingLesson?.end_time || '',
-    status: existingLesson?.status || 'scheduled'
+    instructor_id: existingLesson?.instructor_id || '',
+    room_id: existingLesson?.room_id || '',
+    start_time: existingLesson?.start_time ? existingLesson.start_time.slice(0, 16) : '',
+    end_time: existingLesson?.end_time ? existingLesson.end_time.slice(0, 16) : '',
+    status: existingLesson?.status || 'Scheduled',
+    rate: existingLesson?.rate?.toString() || '',
   })
+
+  useEffect(() => {
+    apiJson<Instructor[]>('/api/instructors').then(setInstructors).catch(() => {})
+    apiJson<Room[]>('/api/rooms').then(setRooms).catch(() => {})
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
     try {
+      const payload: Partial<Lesson> = {
+        instructor_id: formData.instructor_id,
+        room_id: formData.room_id,
+        start_time: formData.start_time,
+        end_time: formData.end_time,
+        status: formData.status,
+      }
+      if (formData.rate) payload.rate = parseFloat(formData.rate)
+
       if (existingLesson) {
-        await updateLesson(existingLesson.lessonID, formData)
+        await updateLesson(existingLesson.lesson_id, payload)
       } else {
-        await createLesson(formData)
+        await createLesson(payload)
       }
       onSaved()
       onClose()
@@ -62,28 +59,36 @@ const ScheduleLessonModal: React.FC<ScheduleLessonModalProps> = ({ existingLesso
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <h2>{existingLesson ? 'Edit Lesson' : 'Schedule New Lesson'}</h2>
         <form onSubmit={handleSubmit}>
-          <div>
-            <label>Instrument:</label>
-            <input
-              type="text"
-              value={formData.instrument}
-              onChange={(e) => setFormData({ ...formData, instrument: e.target.value })}
+          <div className="form-field">
+            <label>Instructor</label>
+            <select
+              value={formData.instructor_id}
+              onChange={(e) => setFormData({ ...formData, instructor_id: e.target.value })}
               required
-            />
-          </div>
-          
-          <div>
-            <label>Date:</label>
-            <input
-              type="date"
-              value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              required
-            />
+            >
+              <option value="">Select instructor</option>
+              {instructors.map(inst => (
+                <option key={inst.instructor_id} value={inst.instructor_id}>{inst.name}</option>
+              ))}
+            </select>
           </div>
 
-          <div>
-            <label>Start Time:</label>
+          <div className="form-field">
+            <label>Room</label>
+            <select
+              value={formData.room_id}
+              onChange={(e) => setFormData({ ...formData, room_id: e.target.value })}
+              required
+            >
+              <option value="">Select room</option>
+              {rooms.map(room => (
+                <option key={room.room_id} value={room.room_id}>{room.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-field">
+            <label>Start Time</label>
             <input
               type="datetime-local"
               value={formData.start_time}
@@ -92,8 +97,8 @@ const ScheduleLessonModal: React.FC<ScheduleLessonModalProps> = ({ existingLesso
             />
           </div>
 
-          <div>
-            <label>End Time:</label>
+          <div className="form-field">
+            <label>End Time</label>
             <input
               type="datetime-local"
               value={formData.end_time}
@@ -102,9 +107,32 @@ const ScheduleLessonModal: React.FC<ScheduleLessonModalProps> = ({ existingLesso
             />
           </div>
 
+          <div className="form-field">
+            <label>Status</label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+            >
+              <option value="Scheduled">Scheduled</option>
+              <option value="Completed">Completed</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
+
+          <div className="form-field">
+            <label>Rate ($)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={formData.rate}
+              onChange={(e) => setFormData({ ...formData, rate: e.target.value })}
+            />
+          </div>
+
           <div className="modal-buttons">
-            <button type="submit">Save</button>
             <button type="button" onClick={onClose}>Cancel</button>
+            <button type="submit">{existingLesson ? 'Update' : 'Schedule'}</button>
           </div>
         </form>
       </div>

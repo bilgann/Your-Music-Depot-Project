@@ -35,7 +35,15 @@ def create_student(data):
 
 
 def update_student(student_id, data):
-    return Student.update(student_id, data)
+    data = dict(data)
+    person_fields = {k: data.pop(k) for k in ("name", "email", "phone") if k in data}
+    if person_fields:
+        rows = Student.get(student_id)
+        if rows:
+            Person.update(rows[0]["person_id"], person_fields)
+    if data:
+        Student.update(student_id, data)
+    return Student.get(student_id)
 
 
 def delete_student(student_id):

@@ -101,6 +101,30 @@ def enroll_student(lesson_id):
         return error_response(e)
 
 
+@lesson_bp.route("/<lesson_id>/enroll/<student_id>/attendance", methods=["PUT"])
+@require_auth
+def record_attendance(lesson_id, student_id):
+    """
+    PUT body: { "attendance_status": "Present" | "Absent" | "Late Cancel" | "Excused" }
+    """
+    try:
+        body = request.get_json() or {}
+        status = body.get("attendance_status")
+        valid = {"Present", "Absent", "Cancelled", "Late Cancel", "Excused"}
+        if status not in valid:
+            from backend.app.exceptions.base import ValidationError
+            raise ValidationError([{
+                "field": "attendance_status",
+                "message": f"Must be one of: {', '.join(sorted(valid))}.",
+            }])
+        result = svc.record_attendance(lesson_id, student_id, status)
+        audit.log(g.user.id, "UPDATE", "lesson_enrollment", lesson_id, None,
+                  {"student_id": student_id, "attendance_status": status})
+        return jsonify(ResponseContract(True, "Attendance recorded.", result).to_dict()), 200
+    except Exception as e:
+        return error_response(e)
+
+
 @lesson_bp.route("/<lesson_id>/enroll/<student_id>", methods=["DELETE"])
 @require_auth
 def unenroll_student(lesson_id, student_id):
