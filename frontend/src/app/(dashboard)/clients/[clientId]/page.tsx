@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { faDollarSign, faUserPlus, faFileInvoice } from "@fortawesome/free-solid-svg-icons";
+import Navbar from "@/components/ui/navbar";
 import Button from "@/components/ui/button";
 import DataState from "@/components/ui/data_state";
 import Sections from "@/components/ui/sections";
@@ -20,7 +21,6 @@ import GenerateInvoiceModal from "@/features/clients/components/generate_invoice
 
 export default function ClientDetailPage() {
     const { clientId } = useParams() as { clientId: string };
-    const router = useRouter();
     const { client, students, invoices, payments, loading, error, refresh } = useClientDetail(clientId);
     const { showPayModal, setShowPayModal, payAmount, setPayAmount, payMethod, setPayMethod, paying, handlePay } = useRecordPayment(clientId, refresh);
     const { showModal: showAddStudent, setShowModal: setShowAddStudent, form: studentForm, setForm: setStudentForm, saving: savingStudent, handleSubmit: handleAddStudent } = useAddClientStudent(clientId, refresh);
@@ -28,20 +28,20 @@ export default function ClientDetailPage() {
     const [activeSection, setActiveSection] = useState("students");
 
     return (
-        <main className="page-client-detail">
-            <DataState loading={loading} error={error} empty={!client} emptyMessage="Client not found.">
-                <div className="page-header">
-                    <div className="client-detail-back">
-                        <Button variant="back" onClick={() => router.push("/clients")}>Clients</Button>
-                        <h1>{client?.person.name}</h1>
-                    </div>
-                    <div className="page-header-actions">
-                        <Button variant="primary"   icon={faDollarSign} onClick={() => setShowPayModal(true)}>Add Payment</Button>
-                        <Button variant="secondary" icon={faUserPlus}   onClick={() => setShowAddStudent(true)}>Add Student</Button>
+        <>
+            <Navbar
+                className="page-client-detail"
+                title={client?.person?.name ?? ""}
+                back={{ label: "Clients", href: "/clients" }}
+                actions={client && (
+                    <>
+                        <Button variant="primary"   icon={faDollarSign}  onClick={() => setShowPayModal(true)}>Add Payment</Button>
+                        <Button variant="secondary" icon={faUserPlus}    onClick={() => setShowAddStudent(true)}>Add Student</Button>
                         <Button variant="secondary" icon={faFileInvoice} onClick={openInvoiceModal}>Add Invoice</Button>
-                    </div>
-                </div>
-
+                    </>
+                )}
+            />
+            <DataState loading={loading} error={error} empty={!client} emptyMessage="Client not found.">
                 <ClientInfoCard client={client!} />
 
                 <Sections
@@ -85,6 +85,6 @@ export default function ClientDetailPage() {
                     />
                 )}
             </DataState>
-        </main>
+        </>
     );
 }

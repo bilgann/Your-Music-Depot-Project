@@ -64,3 +64,19 @@ export async function apiJson<T>(
     }
     return body.data as T;
 }
+
+/**
+ * Like apiJson but also returns the total count from paginated responses.
+ * Backend must include `total` in its response envelope.
+ */
+export async function apiJsonPaged<T>(
+    path: string,
+    options: RequestInit = {}
+): Promise<{ data: T[]; total: number }> {
+    const res = await apiFetch(path, options);
+    const body = await res.json();
+    if (!body.success) {
+        throw new ApiError(res.status, body.message ?? "Request failed.");
+    }
+    return { data: body.data as T[], total: body.total ?? 0 };
+}

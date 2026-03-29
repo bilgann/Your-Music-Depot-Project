@@ -1,3 +1,6 @@
+"use client";
+
+import { useRouter } from "next/navigation";
 import type { ClientStudent } from "@/features/clients/api/client";
 
 interface Props {
@@ -5,6 +8,8 @@ interface Props {
 }
 
 export default function ClientStudentsTab({ students }: Props) {
+    const router = useRouter();
+
     if (students.length === 0) {
         return <p className="table-empty">No students linked to this client.</p>;
     }
@@ -20,7 +25,11 @@ export default function ClientStudentsTab({ students }: Props) {
                 </thead>
                 <tbody>
                     {students.map((stu) => (
-                        <tr key={stu.student_id}>
+                        <tr
+                            key={stu.student_id}
+                            className="table-row-clickable"
+                            onClick={() => router.push(`/students/${stu.student_id}`)}
+                        >
                             <td>{stu.person.name}</td>
                             <td>{stu.person.email || "--"}</td>
                             <td>{stu.person.phone || "--"}</td>

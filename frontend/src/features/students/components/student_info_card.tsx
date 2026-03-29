@@ -12,7 +12,7 @@ export default function StudentInfoCard({ student }: Props) {
             { label: "Email",  value: student.person.email || "--" },
             { label: "Phone",  value: student.person.phone || "--" },
             { label: "Client", value: student.client_id
-                ? <Link href={`/clients/${student.client_id}`} className="link">View Client</Link>
+                ? <Link href={`/clients/${student.client_id}`} className="link">{student.client?.person?.name ?? student.client_id}</Link>
                 : "--" },
         ]} />
     );

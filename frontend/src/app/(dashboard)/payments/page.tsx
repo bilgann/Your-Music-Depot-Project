@@ -1,7 +1,9 @@
 "use client";
 
+import Navbar from "@/components/ui/navbar";
 import DataTable from "@/components/ui/data_table";
 import Modal from "@/components/ui/modal";
+import Button from "@/components/ui/button";
 import { NumberField, SelectField, TextField } from "@/components/ui/fields";
 import { usePayments } from "@/features/payments/hooks/use_payments";
 import { usePaymentCrud } from "@/features/payments/hooks/use_payment_crud";
@@ -19,13 +21,17 @@ function formatDate(iso: string | null) {
 }
 
 export default function PaymentsPage() {
-    const { payments, loading, error, refresh } = usePayments();
+    const { payments, loading, error, refresh, page, setPage, pageCount } = usePayments();
     const { showModal, setShowModal, form, setForm, saving, openAdd, handleSubmit, handleDelete } = usePaymentCrud(refresh);
 
     return (
-        <main className="page-payments">
+        <>
+            <Navbar
+                title="Payments"
+                className="page-payments"
+                actions={<Button variant="primary" onClick={openAdd}>+ Record Payment</Button>}
+            />
             <DataTable
-                title="Payments" addLabel="+ Record Payment" onAdd={openAdd}
                 loading={loading} error={error} data={payments}
                 emptyMessage="No payments recorded yet."
                 getKey={(p) => p.payment_id}
@@ -38,6 +44,7 @@ export default function PaymentsPage() {
                     { header: "Notes",   render: (p) => p.notes || "--" },
                 ]}
                 onDelete={handleDelete}
+                page={page} pageCount={pageCount} onPageChange={setPage}
             />
             {showModal && (
                 <Modal title="Record Payment" onClose={() => setShowModal(false)} onSubmit={handleSubmit} submitLabel="Record Payment" saving={saving}>
@@ -47,6 +54,6 @@ export default function PaymentsPage() {
                     <TextField    label="Notes"          value={form.notes}          onChange={(v) => setForm({ ...form, notes: v })} />
                 </Modal>
             )}
-        </main>
+        </>
     );
 }

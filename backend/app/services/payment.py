@@ -18,6 +18,10 @@ def get_all_payments():
     return Payment.get_all()
 
 
+def list_payments(page: int = 1, page_size: int = 20):
+    return Payment.list(page, page_size)
+
+
 def get_payment_by_id(payment_id):
     return Payment.get(payment_id)
 

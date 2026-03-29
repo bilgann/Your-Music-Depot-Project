@@ -1,4 +1,4 @@
-import { faPencil, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faPencil, faTrash, faChevronLeft, faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import Button from "./button";
 import DataState from "./data_state";
 
@@ -8,9 +8,6 @@ export interface Column<T> {
 }
 
 interface DataTableProps<T> {
-    title: string;
-    addLabel?: string;
-    onAdd?: () => void;
     loading: boolean;
     error: string | null;
     data: T[];
@@ -20,12 +17,12 @@ interface DataTableProps<T> {
     onEdit?: (row: T) => void;
     onDelete?: (row: T) => void;
     onRowClick?: (row: T) => void;
+    page?: number;
+    pageCount?: number;
+    onPageChange?: (page: number) => void;
 }
 
 export default function DataTable<T>({
-    title,
-    addLabel,
-    onAdd,
     loading,
     error,
     data,
@@ -35,20 +32,17 @@ export default function DataTable<T>({
     onEdit,
     onDelete,
     onRowClick,
+    page,
+    pageCount,
+    onPageChange,
 }: DataTableProps<T>) {
     const hasActions = onEdit || onDelete;
+    const paginationEnabled = !!onPageChange && page !== undefined && pageCount !== undefined;
+    const currentPage  = page      ?? 1;
+    const currentCount = pageCount ?? 1;
 
     return (
         <>
-            <div className="page-header">
-                <h1>{title}</h1>
-                {onAdd && (
-                    <Button variant="primary" onClick={onAdd}>
-                        {addLabel ?? `+ Add ${title.replace(/s$/, "")}`}
-                    </Button>
-                )}
-            </div>
-
             <DataState loading={loading} error={error} empty={data.length === 0} emptyMessage={emptyMessage}>
                 <div className="data-table-wrapper">
                     <table className="data-table">
@@ -91,6 +85,26 @@ export default function DataTable<T>({
                     </table>
                 </div>
             </DataState>
+
+            <div className="pagination">
+                <Button
+                    variant="icon"
+                    icon={faChevronLeft}
+                    onClick={paginationEnabled ? () => onPageChange(currentPage - 1) : undefined}
+                    disabled={!paginationEnabled || currentPage <= 1}
+                    title="Previous page"
+                />
+                <span className="pagination-info">
+                    {paginationEnabled ? `Page ${currentPage} of ${currentCount}` : "—"}
+                </span>
+                <Button
+                    variant="icon"
+                    icon={faChevronRight}
+                    onClick={paginationEnabled ? () => onPageChange(currentPage + 1) : undefined}
+                    disabled={!paginationEnabled || currentPage >= currentCount}
+                    title="Next page"
+                />
+            </div>
         </>
     );
 }

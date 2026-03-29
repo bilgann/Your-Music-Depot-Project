@@ -13,7 +13,11 @@ student_bp = Blueprint("students", __name__, url_prefix="/api/students")
 @require_auth
 def list_students():
     try:
-        return jsonify(ResponseContract(True, "OK", svc.get_all_students()).to_dict()), 200
+        page      = int(request.args.get("page", 1))
+        page_size = int(request.args.get("page_size", 20))
+        search    = request.args.get("search", "").strip() or None
+        data, total = svc.list_students(page, page_size, search)
+        return jsonify(ResponseContract(True, "OK", data, total=total).to_dict()), 200
     except Exception as e:
         return error_response(e)
 

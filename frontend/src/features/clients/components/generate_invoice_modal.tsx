@@ -1,5 +1,6 @@
 import Modal from "@/components/ui/modal";
 import { SelectField, NumberField } from "@/components/ui/fields";
+import { Combobox } from "@/components/ui/combobox";
 import type { ClientStudent } from "@/features/clients/api/client";
 
 interface Props {
@@ -31,7 +32,7 @@ export default function GenerateInvoiceModal({ onClose, onSubmit, form, onChange
 
     return (
         <Modal title="Invoice" onClose={onClose} onSubmit={onSubmit} submitLabel="Generate" saving={saving}>
-            <SelectField label="Student" value={form.student_id} onChange={(v) => onChange({ ...form, student_id: v })} options={studentOptions} />
+            <Combobox label="Student" value={form.student_id} onChange={(v) => onChange({ ...form, student_id: v })} options={studentOptions} required />
             <SelectField label="Month"   value={form.month}      onChange={(v) => onChange({ ...form, month: v })}      options={MONTH_OPTIONS} />
             <NumberField label="Year"    value={form.year}        onChange={(v) => onChange({ ...form, year: v })}       min={2020} />
         </Modal>

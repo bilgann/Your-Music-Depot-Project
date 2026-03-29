@@ -21,7 +21,7 @@ _SCHEMAS: dict = {
         "types": {"name": str, "email": str, "phone": str},
     },
     "student": {
-        "required": [],
+        "required": ["client_id"],
         "types": {"name": str, "email": str, "phone": str, "person_id": str, "client_id": str},
     },
     "room": {

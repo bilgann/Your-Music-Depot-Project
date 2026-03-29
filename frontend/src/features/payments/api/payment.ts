@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiJsonPaged } from "@/lib/api";
 
 export type Payment = {
     payment_id: string;
@@ -14,6 +14,14 @@ export async function getPayments(): Promise<Payment[]> {
     if (!res.ok) throw new Error(`Failed to fetch payments: ${res.statusText}`);
     const body = await res.json();
     return body.data ?? [];
+}
+
+export async function listPayments(
+    page = 1,
+    pageSize = 20
+): Promise<{ data: Payment[]; total: number }> {
+    const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
+    return apiJsonPaged<Payment>(`/api/payments?${params}`);
 }
 
 export async function createPayment(data: {

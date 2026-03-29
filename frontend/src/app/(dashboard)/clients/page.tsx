@@ -1,32 +1,41 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Navbar from "@/components/ui/navbar";
 import DataTable from "@/components/ui/data_table";
 import Modal from "@/components/ui/modal";
+import Button from "@/components/ui/button";
 import { TextField } from "@/components/ui/fields";
 import { useClients } from "@/features/clients/hooks/use_clients";
 import { useClientCrud } from "@/features/clients/hooks/use_client_crud";
 
 export default function ClientsPage() {
     const router = useRouter();
-    const { clients, loading, error, refresh } = useClients();
+    const { clients, loading, error, refresh, page, setPage, search, setSearch, pageCount } = useClients();
     const { showModal, setShowModal, editing, form, setForm, saving, openAdd, openEdit, handleSubmit, handleDelete } = useClientCrud(refresh);
 
     return (
-        <main className="page-clients">
+        <>
+            <Navbar
+                title="Clients"
+                className="page-clients"
+                search={search}
+                onSearchChange={setSearch}
+                actions={<Button variant="primary" onClick={openAdd}>+ Add Client</Button>}
+            />
             <DataTable
-                title="Clients" addLabel="+ Add Client" onAdd={openAdd}
                 loading={loading} error={error} data={clients}
                 emptyMessage="No clients found. Add one to get started."
                 getKey={(c) => c.client_id}
                 columns={[
-                    { header: "Name",    render: (c) => c.person.name },
-                    { header: "Email",   render: (c) => c.person.email || "--" },
-                    { header: "Phone",   render: (c) => c.person.phone || "--" },
+                    { header: "Name",    render: (c) => c.person?.name ?? "--" },
+                    { header: "Email",   render: (c) => c.person?.email || "--" },
+                    { header: "Phone",   render: (c) => c.person?.phone || "--" },
                     { header: "Credits", render: (c) => `$${Number(c.credits ?? 0).toFixed(2)}` },
                 ]}
                 onEdit={openEdit} onDelete={handleDelete}
                 onRowClick={(c) => router.push(`/clients/${c.client_id}`)}
+                page={page} pageCount={pageCount} onPageChange={setPage}
             />
             {showModal && (
                 <Modal title={editing ? "Edit Client" : "Add Client"} onClose={() => setShowModal(false)} onSubmit={handleSubmit} submitLabel={editing ? "Update" : "Create"} saving={saving}>
@@ -35,6 +44,6 @@ export default function ClientsPage() {
                     <TextField label="Phone" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
                 </Modal>
             )}
-        </main>
+        </>
     );
 }

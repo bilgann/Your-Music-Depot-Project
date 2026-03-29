@@ -5,6 +5,10 @@ def get_all_instructors():
     return Instructor.get_all()
 
 
+def list_instructors(page: int = 1, page_size: int = 20, search: str = None):
+    return Instructor.list(page, page_size, search)
+
+
 def get_instructor_by_id(instructor_id):
     return Instructor.get(instructor_id)
 

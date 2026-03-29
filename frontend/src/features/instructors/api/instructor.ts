@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiJsonPaged } from "@/lib/api";
 
 export type Instructor = {
     instructor_id: string;
@@ -12,6 +12,16 @@ export async function getInstructors(): Promise<Instructor[]> {
     if (!res.ok) throw new Error(`Failed to fetch instructors: ${res.statusText}`);
     const body = await res.json();
     return body.data ?? [];
+}
+
+export async function listInstructors(
+    page = 1,
+    pageSize = 20,
+    search?: string
+): Promise<{ data: Instructor[]; total: number }> {
+    const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
+    if (search) params.set("search", search);
+    return apiJsonPaged<Instructor>(`/api/instructors?${params}`);
 }
 
 export async function createInstructor(data: { name: string; email?: string; phone?: string }): Promise<Instructor> {

@@ -13,7 +13,11 @@ room_bp = Blueprint("rooms", __name__, url_prefix="/api/rooms")
 @require_auth
 def list_rooms():
     try:
-        return jsonify(ResponseContract(True, "OK", svc.get_all_rooms()).to_dict()), 200
+        page      = int(request.args.get("page", 1))
+        page_size = int(request.args.get("page_size", 20))
+        search    = request.args.get("search", "").strip() or None
+        data, total = svc.list_rooms(page, page_size, search)
+        return jsonify(ResponseContract(True, "OK", data, total=total).to_dict()), 200
     except Exception as e:
         return error_response(e)
 

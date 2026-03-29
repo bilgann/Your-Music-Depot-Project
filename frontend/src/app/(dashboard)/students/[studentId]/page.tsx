@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Button from "@/components/ui/button";
+import { useParams } from "next/navigation";
+import Navbar from "@/components/ui/navbar";
 import DataState from "@/components/ui/data_state";
 import Sections from "@/components/ui/sections";
 import { useStudentDetail } from "@/features/students/hooks/use_student_detail";
@@ -12,20 +12,17 @@ import StudentInvoicesTab from "@/features/students/components/student_invoices_
 
 export default function StudentDetailPage() {
     const { studentId } = useParams() as { studentId: string };
-    const router = useRouter();
     const { student, enrollments, invoices, loading, error } = useStudentDetail(studentId);
     const [activeSection, setActiveSection] = useState("lessons");
 
     return (
-        <main className="page-student-detail">
+        <>
+            <Navbar
+                className="page-student-detail"
+                title={student?.person?.name ?? ""}
+                back={{ label: "Students", href: "/students" }}
+            />
             <DataState loading={loading} error={error} empty={!student} emptyMessage="Student not found.">
-                <div className="page-header">
-                    <div className="client-detail-back">
-                        <Button variant="back" onClick={() => router.push("/students")}>Students</Button>
-                        <h1>{student?.person.name}</h1>
-                    </div>
-                </div>
-
                 <StudentInfoCard student={student!} />
 
                 <Sections
@@ -37,6 +34,6 @@ export default function StudentDetailPage() {
                     ]}
                 />
             </DataState>
-        </main>
+        </>
     );
 }

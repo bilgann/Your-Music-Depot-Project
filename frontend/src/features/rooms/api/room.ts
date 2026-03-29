@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiJsonPaged } from "@/lib/api";
 
 export type Room = {
     room_id: string;
@@ -11,6 +11,16 @@ export async function getRooms(): Promise<Room[]> {
     if (!res.ok) throw new Error(`Failed to fetch rooms: ${res.statusText}`);
     const body = await res.json();
     return body.data ?? [];
+}
+
+export async function listRooms(
+    page = 1,
+    pageSize = 20,
+    search?: string
+): Promise<{ data: Room[]; total: number }> {
+    const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
+    if (search) params.set("search", search);
+    return apiJsonPaged<Room>(`/api/rooms?${params}`);
 }
 
 export async function createRoom(data: { name: string; capacity?: number }): Promise<Room> {

@@ -13,7 +13,10 @@ payment_bp = Blueprint("payments", __name__, url_prefix="/api/payments")
 @require_admin
 def list_payments():
     try:
-        return jsonify(ResponseContract(True, "OK", svc.get_all_payments()).to_dict()), 200
+        page      = int(request.args.get("page", 1))
+        page_size = int(request.args.get("page_size", 20))
+        data, total = svc.list_payments(page, page_size)
+        return jsonify(ResponseContract(True, "OK", data, total=total).to_dict()), 200
     except Exception as e:
         return error_response(e)
 

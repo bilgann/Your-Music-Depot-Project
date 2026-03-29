@@ -17,6 +17,15 @@ class Client:
         )
 
     @staticmethod
+    def list(page: int = 1, page_size: int = 20, search: str = None):
+        offset = (page - 1) * page_size
+        q = DatabaseConnection().client.table("client").select("*, person!inner(*)", count="exact")
+        if search:
+            q = q.ilike("person.name", f"%{search}%")
+        result = q.range(offset, offset + page_size - 1).execute()
+        return result.data, result.count
+
+    @staticmethod
     def get(client_id):
         return (
             DatabaseConnection().client

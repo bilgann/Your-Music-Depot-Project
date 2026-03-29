@@ -13,6 +13,15 @@ class Instructor:
         return DatabaseConnection().client.table("instructor").select("*").execute().data
 
     @staticmethod
+    def list(page: int = 1, page_size: int = 20, search: str = None):
+        offset = (page - 1) * page_size
+        q = DatabaseConnection().client.table("instructor").select("*", count="exact")
+        if search:
+            q = q.ilike("name", f"%{search}%")
+        result = q.range(offset, offset + page_size - 1).execute()
+        return result.data, result.count
+
+    @staticmethod
     def get(instructor_id):
         return (
             DatabaseConnection().client

@@ -1,19 +1,27 @@
 "use client";
 
+import Navbar from "@/components/ui/navbar";
 import DataTable from "@/components/ui/data_table";
 import Modal from "@/components/ui/modal";
+import Button from "@/components/ui/button";
 import { TextField } from "@/components/ui/fields";
 import { useInstructors } from "@/features/instructors/hooks/use_instructors";
 import { useInstructorCrud } from "@/features/instructors/hooks/use_instructor_crud";
 
 export default function InstructorsPage() {
-    const { instructors, loading, error, refresh } = useInstructors();
+    const { instructors, loading, error, refresh, page, setPage, search, setSearch, pageCount } = useInstructors();
     const { showModal, setShowModal, editing, form, setForm, saving, openAdd, openEdit, handleSubmit, handleDelete } = useInstructorCrud(refresh);
 
     return (
-        <main className="page-instructor">
+        <>
+            <Navbar
+                title="Instructors"
+                className="page-instructor"
+                search={search}
+                onSearchChange={setSearch}
+                actions={<Button variant="primary" onClick={openAdd}>+ Add Instructor</Button>}
+            />
             <DataTable
-                title="Instructors" addLabel="+ Add Instructor" onAdd={openAdd}
                 loading={loading} error={error} data={instructors}
                 emptyMessage="No instructors found. Add one to get started."
                 getKey={(inst) => inst.instructor_id}
@@ -23,6 +31,7 @@ export default function InstructorsPage() {
                     { header: "Phone", render: (inst) => inst.phone || "--" },
                 ]}
                 onEdit={openEdit} onDelete={handleDelete}
+                page={page} pageCount={pageCount} onPageChange={setPage}
             />
             {showModal && (
                 <Modal title={editing ? "Edit Instructor" : "Add Instructor"} onClose={() => setShowModal(false)} onSubmit={handleSubmit} submitLabel={editing ? "Update" : "Create"} saving={saving}>
@@ -31,6 +40,6 @@ export default function InstructorsPage() {
                     <TextField label="Phone" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
                 </Modal>
             )}
-        </main>
+        </>
     );
 }

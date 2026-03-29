@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Navbar from "@/components/ui/navbar";
 
 type UserInfo = {
     username: string;
@@ -31,9 +32,8 @@ export default function SettingsPage() {
     }, []);
 
     return (
-        <main className="page-settings">
-            <h1>Settings</h1>
-
+        <>
+            <Navbar title="Settings" className="page-settings" />
             {user ? (
                 <div className="settings-card">
                     <div className="settings-row">
@@ -52,6 +52,6 @@ export default function SettingsPage() {
             ) : (
                 <p className="table-empty">Could not load user information.</p>
             )}
-        </main>
+        </>
     );
 }

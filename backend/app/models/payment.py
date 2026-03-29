@@ -21,6 +21,18 @@ class Payment:
         )
 
     @staticmethod
+    def list(page: int = 1, page_size: int = 20):
+        offset = (page - 1) * page_size
+        result = (
+            DatabaseConnection().client
+            .table("payment")
+            .select("*, invoice(client_id, student_id, period_start, period_end, client(*, person(*)))", count="exact")
+            .range(offset, offset + page_size - 1)
+            .execute()
+        )
+        return result.data, result.count
+
+    @staticmethod
     def get(payment_id):
         return (
             DatabaseConnection().client

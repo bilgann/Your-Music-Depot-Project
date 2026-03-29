@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiJsonPaged } from "@/lib/api";
 
 export type Client = {
     client_id: string;
@@ -43,6 +43,21 @@ export async function getClients(): Promise<Client[]> {
     if (!res.ok) throw new Error(`Failed to fetch clients: ${res.statusText}`);
     const body = await res.json();
     return body.data ?? [];
+}
+
+export async function listClients(
+    page = 1,
+    pageSize = 20,
+    search?: string
+): Promise<{ data: Client[]; total: number }> {
+    const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
+    if (search) params.set("search", search);
+    return apiJsonPaged<Client>(`/api/clients?${params}`);
+}
+
+export async function searchClients(query: string): Promise<{ value: string; label: string }[]> {
+    const { data } = await listClients(1, 20, query || undefined);
+    return data.map((c) => ({ value: c.client_id, label: c.person.name }));
 }
 
 export async function getClientById(clientId: string): Promise<Client> {

@@ -7,6 +7,10 @@ def get_all_clients():
     return Client.get_all()
 
 
+def list_clients(page: int = 1, page_size: int = 20, search: str = None):
+    return Client.list(page, page_size, search)
+
+
 def get_client_by_id(client_id):
     return Client.get(client_id)
 
