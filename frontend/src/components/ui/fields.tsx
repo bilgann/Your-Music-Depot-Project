@@ -43,13 +43,16 @@ interface SelectFieldProps {
     value: string;
     onChange: (v: string) => void;
     options: SelectOption[];
+    required?: boolean;
+    placeholder?: string;
 }
 
-export function SelectField({ label, value, onChange, options }: SelectFieldProps) {
+export function SelectField({ label, value, onChange, options, required, placeholder }: SelectFieldProps) {
     return (
         <div className="form-field">
             <label>{label}</label>
-            <select value={value} onChange={(e) => onChange(e.target.value)}>
+            <select value={value} onChange={(e) => onChange(e.target.value)} required={required}>
+                <option value="">{placeholder ?? `Select ${label.toLowerCase()}`}</option>
                 {options.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
                 ))}

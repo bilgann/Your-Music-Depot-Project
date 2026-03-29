@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Lesson, Instructor, Room } from '../../../types/index'
 import { createLesson, updateLesson } from '../api/lesson'
 import { apiJson } from '@/lib/api'
+import Button from '@/components/ui/button'
 
 interface ScheduleLessonModalProps {
   existingLesson?: Lesson
@@ -130,9 +131,9 @@ const ScheduleLessonModal: React.FC<ScheduleLessonModalProps> = ({ existingLesso
             />
           </div>
 
-          <div className="modal-buttons">
-            <button type="button" onClick={onClose}>Cancel</button>
-            <button type="submit">{existingLesson ? 'Update' : 'Schedule'}</button>
+          <div className="modal-footer">
+            <Button variant="secondary" onClick={onClose}>Cancel</Button>
+            <Button variant="primary" type="submit">{existingLesson ? 'Update' : 'Schedule'}</Button>
           </div>
         </form>
       </div>

@@ -1,3 +1,5 @@
+import Button from "./button";
+
 interface ModalProps {
     title: string;
     onClose: () => void;
@@ -11,14 +13,14 @@ export default function Modal({ title, onClose, onSubmit, submitLabel = "Save", 
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                <h2>{title}</h2>
+                <div className="modal-header"><h2>{title}</h2></div>
                 <form onSubmit={onSubmit}>
                     {children}
-                    <div className="modal-buttons">
-                        <button type="button" onClick={onClose}>Cancel</button>
-                        <button type="submit" disabled={saving}>
+                    <div className="modal-footer">
+                        <Button variant="secondary" onClick={onClose}>Cancel</Button>
+                        <Button variant="primary" type="submit" disabled={saving}>
                             {saving ? "Saving..." : submitLabel}
-                        </button>
+                        </Button>
                     </div>
                 </form>
             </div>

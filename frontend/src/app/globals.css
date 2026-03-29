@@ -97,7 +97,9 @@ body {
 }
 
 .sidebar-link {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 12px 16px;
   border-radius: var(--radius-sm);
   color: var(--color-sidebar-link);
@@ -118,7 +120,9 @@ body {
 
 .sidebar-logout {
   margin-top: auto;
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
   padding: 12px 16px;
   border-radius: var(--radius-sm);
@@ -553,6 +557,11 @@ body {
   margin: 0;
 }
 
+.page-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
 /* ── Modal ───────────────────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed;
@@ -588,6 +597,8 @@ body {
   font-weight: 700;
   color: var(--color-text);
   margin: 0;
+  text-align: center;
+  flex: 1;
 }
 
 .close-btn {
@@ -635,6 +646,7 @@ body {
   border: 1px solid var(--color-border-input);
   border-radius: var(--radius-sm);
   font-size: 14px;
+  color: var(--color-text);
   outline: none;
   transition: border-color 0.2s;
   width: 100%;
@@ -661,19 +673,23 @@ body {
 
 /* ── Back button ─────────────────────────────────────────────────────── */
 .btn-back {
-  background: none;
-  border: 1px solid var(--color-border-input);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-border);
+  border: none;
   border-radius: var(--radius-sm);
-  padding: 6px 14px;
+  padding: 7px 14px;
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text-subtle);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
 .btn-back:hover {
-  background: var(--color-bg-hover);
+  background: var(--color-border-input);
+  color: var(--color-text);
 }
 
 /* ── Info card (client / student detail) ─────────────────────────────── */

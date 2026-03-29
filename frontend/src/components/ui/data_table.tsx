@@ -1,3 +1,5 @@
+import { faPencil, faTrash } from "@fortawesome/free-solid-svg-icons";
+import Button from "./button";
 import DataState from "./data_state";
 
 export interface Column<T> {
@@ -41,9 +43,9 @@ export default function DataTable<T>({
             <div className="page-header">
                 <h1>{title}</h1>
                 {onAdd && (
-                    <button className="btn btn-primary" onClick={onAdd}>
+                    <Button variant="primary" onClick={onAdd}>
                         {addLabel ?? `+ Add ${title.replace(/s$/, "")}`}
-                    </button>
+                    </Button>
                 )}
             </div>
 
@@ -75,14 +77,10 @@ export default function DataTable<T>({
                                                 onClick={onRowClick ? (e) => e.stopPropagation() : undefined}
                                             >
                                                 {onEdit && (
-                                                    <button className="btn-icon" onClick={() => onEdit(row)} title="Edit">
-                                                        &#9998;
-                                                    </button>
+                                                    <Button variant="icon" onClick={() => onEdit(row)} title="Edit" icon={faPencil} />
                                                 )}
                                                 {onDelete && (
-                                                    <button className="btn-icon btn-icon--danger" onClick={() => onDelete(row)} title="Delete">
-                                                        &#10005;
-                                                    </button>
+                                                    <Button variant="icon-danger" onClick={() => onDelete(row)} title="Delete" icon={faTrash} />
                                                 )}
                                             </div>
                                         </td>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Button from "@/components/ui/button";
 import DataState from "@/components/ui/data_state";
 import Sections from "@/components/ui/sections";
 import { useStudentDetail } from "@/features/students/hooks/use_student_detail";
@@ -20,7 +21,7 @@ export default function StudentDetailPage() {
             <DataState loading={loading} error={error} empty={!student} emptyMessage="Student not found.">
                 <div className="page-header">
                     <div className="client-detail-back">
-                        <button className="btn-back" onClick={() => router.push("/students")}>&#8592; Students</button>
+                        <Button variant="back" onClick={() => router.push("/students")}>Students</Button>
                         <h1>{student?.person.name}</h1>
                     </div>
                 </div>

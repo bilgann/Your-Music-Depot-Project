@@ -19,7 +19,7 @@ export async function getStudents(): Promise<Student[]> {
     return body.data ?? [];
 }
 
-export async function createStudent(data: { name: string; email?: string; phone?: string }): Promise<Student> {
+export async function createStudent(data: { name: string; email?: string; phone?: string; client_id?: string }): Promise<Student> {
     const res = await apiFetch("/api/students", {
         method: "POST",
         body: JSON.stringify(data),
@@ -29,7 +29,7 @@ export async function createStudent(data: { name: string; email?: string; phone?
     return body.data;
 }
 
-export async function updateStudent(studentId: string, data: { name?: string; email?: string; phone?: string }): Promise<Student> {
+export async function updateStudent(studentId: string, data: { name?: string; email?: string; phone?: string; client_id?: string }): Promise<Student> {
     const res = await apiFetch(`/api/students/${studentId}`, {
         method: "PUT",
         body: JSON.stringify(data),

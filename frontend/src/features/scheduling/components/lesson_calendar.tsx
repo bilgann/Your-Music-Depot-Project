@@ -1,8 +1,10 @@
 'use client'
 
 import React, { useEffect, useState, useMemo, useRef } from 'react'
+import { faPencil, faTrash, faCheck, faXmark, faChevronLeft, faChevronRight, faPlus } from '@fortawesome/free-solid-svg-icons'
 import { Lesson } from '../../../types/index'
 import { getLessons, deleteLesson } from '../api/lesson'
+import Button from '@/components/ui/button'
 import ScheduleLessonModal from './schedule_lesson_modal'
 
 const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
@@ -274,28 +276,9 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
         title={`${lesson.status ?? 'Lesson'} — ${timeLabel}`}
       >
         {calendarEditMode && (
-          <div className="event-btns-wrapper" style={{ position: 'absolute', top: 6, right: 6, zIndex: 60 }}>
-            <button
-              className="event-edit-btn"
-              onClick={(e) => {
-                e.stopPropagation()
-                setEditingLesson(lesson)
-                setShowModal(true)
-              }}
-              aria-label="Edit lesson"
-            >
-              ✎
-            </button>
-            <button
-              className="event-delete-btn"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleDeleteLesson(lesson.lesson_id)
-              }}
-              aria-label="Delete lesson"
-            >
-              ✕
-            </button>
+          <div className="event-btns-wrapper" style={{ position: 'absolute', top: 6, right: 6, zIndex: 60 }} onClick={(e) => e.stopPropagation()}>
+            <Button variant="event-edit"   icon={faPencil} onClick={() => { setEditingLesson(lesson); setShowModal(true) }} title="Edit lesson" />
+            <Button variant="event-delete" icon={faTrash}  onClick={() => handleDeleteLesson(lesson.lesson_id)} title="Delete lesson" />
           </div>
         )}
         <div className="ac-event-name" style={{ fontWeight: 'bold' }}>
@@ -321,35 +304,25 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
           <div className="today-label">
             {new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
           </div>
-          <button className="today-button" onClick={goToday}>Today</button>
+          <Button variant="cal-control" onClick={goToday}>Today</Button>
         </div>
         <div className="activity-right">
           {!calendarEditMode ? (
-            <button className="edit-cal-btn" onClick={() => setCalendarEditMode(true)}>Edit</button>
+            <Button variant="cal-control" onClick={() => setCalendarEditMode(true)}>Edit</Button>
           ) : (
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="top-save-btn" onClick={() => setCalendarEditMode(false)} aria-label="Save">✓</button>
-              <button className="top-cancel-btn" onClick={() => setCalendarEditMode(false)} aria-label="Cancel">✕</button>
+              <Button variant="cal-save"   icon={faCheck}  onClick={() => setCalendarEditMode(false)} title="Save" />
+              <Button variant="cal-cancel" icon={faXmark}  onClick={() => setCalendarEditMode(false)} title="Cancel" />
             </div>
           )}
-          <button className="new-button" onClick={() => { setEditingLesson(null); setShowModal(true) }}>
-            <span className="plus">+</span>New Lesson
-          </button>
+          <Button variant="primary" icon={faPlus} onClick={() => { setEditingLesson(null); setShowModal(true) }}>New Lesson</Button>
         </div>
       </div>
 
       <div className="week-nav">
         <div className="nav-group">
-          <button className="nav-btn" onClick={prevWeek} aria-label="Previous week">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M15.8333 10.0001H4.16663M4.16663 10.0001L9.99996 15.8334M4.16663 10.0001L9.99996 4.16675" stroke="#5B5B5B" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-          <button className="nav-btn" onClick={nextWeek} aria-label="Next week">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M4.16671 10.0001H15.8334M15.8334 10.0001L10 15.8334M15.8334 10.0001L10 4.16675" stroke="#5B5B5B" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
+          <Button variant="icon" icon={faChevronLeft}  onClick={prevWeek} title="Previous week" />
+          <Button variant="icon" icon={faChevronRight} onClick={nextWeek} title="Next week" />
         </div>
         <div className="days-row">
           {days.map((d, idx) => (
