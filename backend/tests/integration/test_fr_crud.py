@@ -16,8 +16,8 @@ A valid JWT is obtained once at module load and included in every request.
 import unittest
 from unittest.mock import MagicMock, patch
 
-from backend.app.singletons.auth import Auth
-from backend.app.singletons.database import DatabaseConnection
+from backend.app.application.singletons import Auth
+from backend.app.infrastructure.database.database import DatabaseConnection
 
 
 def _build():
@@ -48,14 +48,14 @@ class TestFRCrudInstructors(unittest.TestCase):
     """FR-01: Add, view, update, and delete instructor records."""
 
     def test_list_instructors_returns_200(self):
-        with patch("backend.app.services.instructor.get_all_instructors", return_value=[]):
+        with patch("backend.app.services.instructor.list_instructors", return_value=([], 0)):
             res = _client.get("/api/instructors", headers=_H)
         self.assertEqual(res.status_code, 200)
         self.assertTrue(res.get_json()["success"])
 
     def test_unauthenticated_request_returns_401(self):
         """NFR-08/NFR-09: No token → 401."""
-        with patch("backend.app.services.instructor.get_all_instructors", return_value=[]):
+        with patch("backend.app.services.instructor.list_instructors", return_value=([], 0)):
             res = _client.get("/api/instructors")
         self.assertEqual(res.status_code, 401)
 
@@ -110,7 +110,7 @@ class TestFRCrudStudents(unittest.TestCase):
     """FR-02: Add, view, update, and delete student records."""
 
     def test_list_students_returns_200(self):
-        with patch("backend.app.services.student.get_all_students", return_value=[]):
+        with patch("backend.app.services.student.list_students", return_value=([], 0)):
             res = _client.get("/api/students", headers=_H)
         self.assertEqual(res.status_code, 200)
 
@@ -132,7 +132,7 @@ class TestFRCrudStudents(unittest.TestCase):
 
     def test_create_student_returns_201(self):
         with patch("backend.app.services.student.create_student", return_value=[{"student_id": "s2"}]):
-            res = _client.post("/api/students", json={"name": "Dan"}, headers=_H)
+            res = _client.post("/api/students", json={"name": "Dan", "client_id": "c1"}, headers=_H)
         self.assertEqual(res.status_code, 201)
 
     def test_create_student_missing_name_returns_422(self):
@@ -165,7 +165,7 @@ class TestFRCrudRooms(unittest.TestCase):
     """FR-03: Manage room inventory with capacity and instrument type."""
 
     def test_list_rooms_returns_200(self):
-        with patch("backend.app.services.room.get_all_rooms", return_value=[]):
+        with patch("backend.app.services.room.list_rooms", return_value=([], 0)):
             res = _client.get("/api/rooms", headers=_H)
         self.assertEqual(res.status_code, 200)
 
@@ -331,7 +331,7 @@ class TestFRCrudPayments(unittest.TestCase):
     """FR-05 / FR-12: Record and view payment transactions — admin access only."""
 
     def test_list_payments_returns_200_for_admin(self):
-        with patch("backend.app.services.payment.get_all_payments", return_value=[]):
+        with patch("backend.app.services.payment.list_payments", return_value=([], 0)):
             res = _client.get("/api/payments", headers=_H)
         self.assertEqual(res.status_code, 200)
 
@@ -374,13 +374,13 @@ class TestFRSearchableFields(unittest.TestCase):
 
     def test_student_record_exposes_name(self):
         data = [{"student_id": "s1", "name": "Alice"}]
-        with patch("backend.app.services.student.get_all_students", return_value=data):
+        with patch("backend.app.services.student.list_students", return_value=(data, 1)):
             res = _client.get("/api/students", headers=_H)
         self.assertIn("name", res.get_json()["data"][0])
 
     def test_instructor_record_exposes_name(self):
         data = [{"instructor_id": "i1", "name": "Bob"}]
-        with patch("backend.app.services.instructor.get_all_instructors", return_value=data):
+        with patch("backend.app.services.instructor.list_instructors", return_value=(data, 1)):
             res = _client.get("/api/instructors", headers=_H)
         self.assertIn("name", res.get_json()["data"][0])
 

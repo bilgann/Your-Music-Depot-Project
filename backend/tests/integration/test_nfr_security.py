@@ -9,8 +9,8 @@ from unittest.mock import MagicMock, patch
 
 import jwt
 
-from backend.app.singletons.auth import Auth
-from backend.app.singletons.database import DatabaseConnection
+from backend.app.application.singletons import Auth
+from backend.app.infrastructure.database.database import DatabaseConnection
 
 _SECRET = "supersecretkey"
 

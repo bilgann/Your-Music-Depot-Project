@@ -8,8 +8,8 @@ import unittest
 
 from flask import Flask
 
-from backend.app.contracts.errors import ConflictError, NotFoundError, ValidationError
-from backend.app.contracts.validation import error_response, parse_db_error, validate
+from backend.app.domain.exceptions.exceptions import ConflictError, NotFoundError, ValidationError
+from backend.app.api.contracts.validation import error_response, parse_db_error, validate
 
 _app = Flask(__name__)
 
@@ -48,9 +48,9 @@ class TestValidateStudent(unittest.TestCase):
     def test_missing_name_and_person_id_raises(self):
         """Service raises ValidationError when neither name nor person_id is supplied."""
         from unittest.mock import MagicMock
-        from backend.app.singletons.database import DatabaseConnection
+        from backend.app.infrastructure.database.database import DatabaseConnection
         DatabaseConnection._instance = MagicMock()
-        from backend.app.services.student import create_student
+        from backend.app.application.services import create_student
         with self.assertRaises(ValidationError) as ctx:
             create_student({})
         self.assertIn("name", [e["field"] for e in ctx.exception.errors])
@@ -58,9 +58,9 @@ class TestValidateStudent(unittest.TestCase):
     def test_empty_name_without_person_id_raises(self):
         """Service raises ValidationError when name is empty and person_id is absent."""
         from unittest.mock import MagicMock
-        from backend.app.singletons.database import DatabaseConnection
+        from backend.app.infrastructure.database.database import DatabaseConnection
         DatabaseConnection._instance = MagicMock()
-        from backend.app.services.student import create_student
+        from backend.app.application.services import create_student
         with self.assertRaises(ValidationError):
             create_student({"name": ""})
 
@@ -180,7 +180,7 @@ class TestPartialValidation(unittest.TestCase):
 # ── DB error mapping ──────────────────────────────────────────────────────────
 
 class TestParseDbError(unittest.TestCase):
-    """FR-15, FR-17: PostgreSQL error codes map to typed application exceptions."""
+    """FR-15, FR-17: PostgreSQL error codes map to typed application common."""
 
     def test_fk_violation_code_maps_to_conflict(self):
         self.assertIsInstance(parse_db_error(Exception("ERROR: 23503 foreign key")), ConflictError)

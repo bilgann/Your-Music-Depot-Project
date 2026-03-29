@@ -5,21 +5,20 @@ from flask import Flask, jsonify
 from flask.json.provider import DefaultJSONProvider
 from flask_cors import CORS
 
-from backend.app.contracts.response import ResponseContract
-from backend.app.controllers.attendance_policy import attendance_policy_bp
-from backend.app.controllers.audit import audit_bp
-from backend.app.controllers.client import client_bp
-from backend.app.controllers.instructor import instructor_bp
-from backend.app.controllers.person import person_bp
-from backend.app.controllers.invoice import invoice_bp
-from backend.app.controllers.lesson import lesson_bp
-from backend.app.controllers.payment import payment_bp
-from backend.app.controllers.room import room_bp
-from backend.app.controllers.student import student_bp
-from backend.app.controllers.user import user_bp
-from backend.app.logging.database import DBLogger
-from backend.app.singletons.auth import Auth
-from backend.app.singletons.database import DatabaseConnection
+from backend.app.api.contracts.response import ResponseContract
+from backend.app.api.controllers import attendance_policy_bp
+from backend.app.api.controllers import audit_bp
+from backend.app.api.controllers import client_bp
+from backend.app.api.controllers import instructor_bp
+from backend.app.api.controllers.person import person_bp
+from backend.app.api.controllers import invoice_bp
+from backend.app.api.controllers import lesson_bp
+from backend.app.api.controllers.payment import payment_bp
+from backend.app.api.controllers.room import room_bp
+from backend.app.api.controllers.student import student_bp
+from backend.app.api.controllers.user import user_bp
+from backend.app.application.singletons import Auth
+from backend.app.infrastructure.database.database import DatabaseConnection
 
 
 class _JSONProvider(DefaultJSONProvider):
@@ -43,9 +42,8 @@ def build_app():
     CORS(app, resources={r"/*": {"origins": ["http://localhost:3000", "http://localhost:3001"]}},
          supports_credentials=True)
 
-    logger = DBLogger("db_logger").get_logger()
-    DatabaseConnection(logger=logger)
-    Auth(logger=logger)
+    DatabaseConnection()
+    Auth()
 
     app.register_blueprint(user_bp)
     app.register_blueprint(attendance_policy_bp)

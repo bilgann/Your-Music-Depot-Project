@@ -11,8 +11,8 @@ Integration tests covering:
 import unittest
 from unittest.mock import MagicMock, patch
 
-from backend.app.singletons.auth import Auth
-from backend.app.singletons.database import DatabaseConnection
+from backend.app.application.singletons import Auth
+from backend.app.infrastructure.database.database import DatabaseConnection
 
 
 def _build():

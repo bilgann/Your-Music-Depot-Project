@@ -23,7 +23,7 @@ from dotenv import load_dotenv
 
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
-from backend.app.singletons.database import DatabaseConnection
+from backend.app.infrastructure.database.database import DatabaseConnection
 
 db = DatabaseConnection().client
 

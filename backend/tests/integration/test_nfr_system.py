@@ -15,8 +15,8 @@ import time
 import unittest
 from unittest.mock import MagicMock, patch
 
-from backend.app.singletons.auth import Auth
-from backend.app.singletons.database import DatabaseConnection
+from backend.app.application.singletons import Auth
+from backend.app.infrastructure.database.database import DatabaseConnection
 
 _BACKEND_ROOT = os.path.realpath(
     os.path.join(os.path.dirname(__file__), "..", "..")
@@ -44,7 +44,7 @@ class TestNFRTechnicalEnvironment(unittest.TestCase):
 
     def test_cors_header_present_on_api_response(self):
         """NFR-01: CORS header is sent when Origin matches the allowed frontend."""
-        with patch("backend.app.services.student.get_all_students", return_value=[]):
+        with patch("backend.app.services.student.list_students", return_value=([], 0)):
             res = _client.get(
                 "/api/students",
                 headers={"Origin": "http://localhost:3000"},
@@ -64,7 +64,7 @@ class TestNFRTechnicalEnvironment(unittest.TestCase):
 
     def test_all_api_responses_use_json_content_type(self):
         """NFR-01, NFR-02: API responses carry application/json."""
-        with patch("backend.app.services.student.get_all_students", return_value=[]):
+        with patch("backend.app.services.student.list_students", return_value=([], 0)):
             res = _client.get("/api/students")
         self.assertIn("application/json", res.content_type)
 
@@ -75,7 +75,7 @@ class TestNFRSystemIntegration(unittest.TestCase):
     """NFR-02: Flask REST API returns a standardized {success, message, data} envelope."""
 
     def test_success_response_has_required_keys(self):
-        with patch("backend.app.services.student.get_all_students", return_value=[]):
+        with patch("backend.app.services.student.list_students", return_value=([], 0)):
             res = _client.get("/api/students", headers=_H)
         body = res.get_json()
         for key in ("success", "message", "data"):
@@ -169,7 +169,7 @@ class TestNFRMaintainability(unittest.TestCase):
     def test_domain_directories_exist(self):
         """NFR-04: Expected domain layer directories are present."""
         for folder in ("app/controllers", "app/services", "app/models",
-                       "app/contracts", "app/singletons"):
+                       "app/dtos", "app/singletons", "app/domain"):
             self.assertTrue(
                 self._exists(*folder.split("/")),
                 msg=f"Missing domain directory: {folder}",
@@ -200,9 +200,9 @@ class TestNFRMaintainability(unittest.TestCase):
             )
 
     def test_contracts_module_exists(self):
-        """NFR-04: Shared validation/error contracts are encapsulated in one module."""
+        """NFR-04: Shared validation/error dtos are encapsulated in one module."""
         for mod in ("validation.py", "errors.py", "response.py"):
-            self.assertTrue(self._exists("app", "contracts", mod))
+            self.assertTrue(self._exists("app", "dtos", mod))
 
     def test_singleton_modules_exist(self):
         """NFR-04: Shared services (DB, Auth) are singletons in their own module."""
@@ -229,12 +229,12 @@ class TestNFRPerformanceAndAvailability(unittest.TestCase):
         return res, time.perf_counter() - t0
 
     def test_list_students_within_threshold(self):
-        with patch("backend.app.services.student.get_all_students", return_value=[]):
+        with patch("backend.app.services.student.list_students", return_value=([], 0)):
             _, elapsed = self._timed("get", "/api/students")
         self.assertLess(elapsed, self._THRESHOLD)
 
     def test_list_instructors_within_threshold(self):
-        with patch("backend.app.services.instructor.get_all_instructors", return_value=[]):
+        with patch("backend.app.services.instructor.list_instructors", return_value=([], 0)):
             _, elapsed = self._timed("get", "/api/instructors")
         self.assertLess(elapsed, self._THRESHOLD)
 
@@ -250,7 +250,7 @@ class TestNFRPerformanceAndAvailability(unittest.TestCase):
 
     def test_app_is_available_and_responds(self):
         """NFR-07: Application initialises and serves at least one endpoint."""
-        with patch("backend.app.services.student.get_all_students", return_value=[]):
+        with patch("backend.app.services.student.list_students", return_value=([], 0)):
             res = _client.get("/api/students", headers=_H)
         self.assertIn(res.status_code, (200, 201, 204))
 
@@ -273,7 +273,7 @@ class TestNFRCapacity(unittest.TestCase):
             {"student_id": f"s{i}", "name": f"Student {i}", "email": f"s{i}@test.com"}
             for i in range(200)
         ]
-        with patch("backend.app.services.student.get_all_students", return_value=dataset):
+        with patch("backend.app.services.student.list_students", return_value=(dataset, 200)):
             t0 = time.perf_counter()
             res = _client.get("/api/students", headers=_H)
             elapsed = time.perf_counter() - t0
@@ -286,7 +286,7 @@ class TestNFRCapacity(unittest.TestCase):
             {"instructor_id": f"i{i}", "name": f"Instructor {i}"}
             for i in range(20)
         ]
-        with patch("backend.app.services.instructor.get_all_instructors", return_value=dataset):
+        with patch("backend.app.services.instructor.list_instructors", return_value=(dataset, 20)):
             res = _client.get("/api/instructors", headers=_H)
         self.assertEqual(res.status_code, 200)
         self.assertEqual(len(res.get_json()["data"]), 20)
