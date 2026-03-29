@@ -1,11 +1,5 @@
-from backend.app.domain.exceptions.exceptions import ConflictError, NotFoundError
+# Backward-compatibility shim.
+# These exceptions now live in domain.exceptions.financial.
+from backend.app.domain.exceptions.financial import DuplicateInvoiceError, NoLessonsFoundError
 
-
-class DuplicateInvoiceError(ConflictError):
-    """Raised when an invoice for the same student and period already exists."""
-    pass
-
-
-class NoLessonsFoundError(NotFoundError):
-    """Raised when no qualifying lessons exist for the requested invoice period."""
-    pass
+__all__ = ["DuplicateInvoiceError", "NoLessonsFoundError"]

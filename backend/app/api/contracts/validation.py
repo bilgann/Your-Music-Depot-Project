@@ -24,7 +24,10 @@ _SCHEMAS: dict = {
     },
     "student": {
         "required": [],
-        "types": {"name": str, "email": str, "phone": str, "person_id": str, "client_id": str},
+        "types": {
+            "name": str, "email": str, "phone": str,
+            "person_id": str, "client_id": str, "age": int,
+        },
     },
     "room": {
         "required": ["name"],
@@ -32,19 +35,62 @@ _SCHEMAS: dict = {
     },
     "lesson": {
         "required": ["instructor_id", "room_id", "start_time", "end_time"],
-        "types": {"start_time": str, "end_time": str, "rate": (int, float), "recurrence": str},
+        "types": {
+            "start_time": str, "end_time": str,
+            "rate": (int, float), "recurrence": str,
+            "course_id": str,
+        },
     },
     "lesson_enrollment": {
         "required": ["student_id"],
         "types": {"student_id": str},
     },
     "invoice": {
-        "required": ["student_id", "total_amount"],
-        "types": {"total_amount": (int, float), "amount_paid": (int, float)},
+        "required": ["student_id"],
+        "types": {"amount_paid": (int, float)},
+    },
+    "invoice_item": {
+        "required": ["description", "amount"],
+        "types": {
+            "item_type": str, "description": str,
+            "amount": (int, float), "lesson_id": str,
+        },
     },
     "payment": {
         "required": ["invoice_id", "amount"],
         "types": {"amount": (int, float)},
+    },
+    "course": {
+        "required": ["name", "room_id", "recurrence", "start_time", "end_time", "period_start", "period_end"],
+        "types": {
+            "name": str, "description": str, "room_id": str,
+            "recurrence": str, "start_time": str, "end_time": str,
+            "period_start": str, "period_end": str,
+            "capacity": int, "status": str,
+        },
+    },
+    "course_enrollment": {
+        "required": ["student_id"],
+        "types": {"student_id": str},
+    },
+    "course_instructor": {
+        "required": ["instructor_id"],
+        "types": {"instructor_id": str},
+    },
+    "credential": {
+        "required": ["instructor_id", "credential_type"],
+        "types": {
+            "instructor_id": str, "credential_type": str,
+            "issued_by": str, "issued_date": str,
+            "valid_from": str, "valid_until": str,
+        },
+    },
+    "compatibility": {
+        "required": ["instructor_id", "student_id", "verdict", "initiated_by"],
+        "types": {
+            "instructor_id": str, "student_id": str,
+            "verdict": str, "reason": str, "initiated_by": str,
+        },
     },
 }
 

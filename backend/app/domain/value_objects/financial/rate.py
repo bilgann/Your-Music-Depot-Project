@@ -4,6 +4,9 @@ from backend.app.domain.exceptions.exceptions import ValidationError
 from backend.app.domain.value_objects.financial.money import Money
 
 
+_VALID_RATE_TYPES: frozenset = frozenset({"one_time", "hourly"})
+
+
 @dataclass(frozen=True)
 class Rate:
     """A monetary rate that is either one-time (flat) or hourly.
@@ -22,13 +25,11 @@ class Rate:
         charge = rate.for_duration(minutes=45)   # → Money(45.00)
     """
 
-    VALID_TYPES: frozenset = frozenset({"one_time", "hourly"})
-
     charge_type: str
     amount: Money
 
     def __post_init__(self):
-        if self.charge_type not in self.VALID_TYPES:
+        if self.charge_type not in _VALID_RATE_TYPES:
             raise ValidationError([{
                 "field": "charge_type",
                 "message": f"Invalid rate type '{self.charge_type}'. Must be one of: {', '.join(sorted(self.VALID_TYPES))}.",

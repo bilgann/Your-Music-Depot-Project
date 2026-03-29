@@ -1,6 +1,7 @@
 from backend.app.domain.entities.attendance_policy import AttendancePolicyEntity
 from backend.app.domain.entities.audit import AuditLogEntity
 from backend.app.domain.entities.client import ClientEntity
+from backend.app.domain.entities.course import CourseEntity
 from backend.app.domain.entities.credential import CredentialEntity
 from backend.app.domain.entities.instructor import InstructorEntity
 from backend.app.domain.entities.instructor_student_compatibility import InstructorStudentCompatibilityEntity
@@ -18,6 +19,7 @@ __all__ = [
     "AttendancePolicyEntity",
     "AuditLogEntity",
     "ClientEntity",
+    "CourseEntity",
     "CredentialEntity",
     "InstructorEntity",
     "InstructorStudentCompatibilityEntity",

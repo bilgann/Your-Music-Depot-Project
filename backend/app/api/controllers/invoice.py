@@ -79,6 +79,24 @@ def get_line_items(invoice_id):
         return error_response(e)
 
 
+@invoice_bp.route("/<invoice_id>/line-items", methods=["POST"])
+@require_admin
+def add_line_item(invoice_id):
+    """
+    POST /api/invoices/<invoice_id>/line-items
+    Add a non-lesson charge (instrument damage, purchase, other) to an invoice.
+    Body: { item_type, description, amount, lesson_id? }
+    """
+    try:
+        body = request.get_json()
+        validate(body, "invoice_item")
+        result = svc.add_invoice_item(invoice_id, body)
+        audit.log(g.user.id, "CREATE", "invoice_line", invoice_id, None, body)
+        return jsonify(ResponseContract(True, "Line item added.", result).to_dict()), 201
+    except Exception as e:
+        return error_response(e)
+
+
 @invoice_bp.route("", methods=["POST"])
 @require_admin
 def create_invoice():
