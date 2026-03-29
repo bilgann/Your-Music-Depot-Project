@@ -1,25 +1,21 @@
-from backend.app.singletons.database import DatabaseConnection
-
-
-def _db():
-    return DatabaseConnection().client
+from backend.app.models.room import Room
 
 
 def get_all_rooms():
-    return _db().table("room").select("*").execute().data
+    return Room.get_all()
 
 
 def get_room_by_id(room_id):
-    return _db().table("room").select("*").eq("room_id", room_id).execute().data
+    return Room.get(room_id)
 
 
 def create_room(data):
-    return _db().table("room").insert(data).execute().data
+    return Room.create(data)
 
 
 def update_room(room_id, data):
-    return _db().table("room").update(data).eq("room_id", room_id).execute().data
+    return Room.update(room_id, data)
 
 
 def delete_room(room_id):
-    return _db().table("room").delete().eq("room_id", room_id).execute().data
+    return Room.delete(room_id)

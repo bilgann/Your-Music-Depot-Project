@@ -42,6 +42,11 @@ def _make_driver() -> webdriver.Chrome:
     opts.add_argument("--disable-dev-shm-usage")
     opts.add_argument("--window-size=1280,900")
 
+    # Without this the fucking weak password warning breaks the test.
+    prefs = {"credentials_enable_service": False, "profile.password_manager_enabled": False}
+    opts.add_experimental_option("prefs", prefs)
+    prefs["profile.password_manager_leak_detection"] = False
+
     try:
         from webdriver_manager.chrome import ChromeDriverManager  # type: ignore
         service = Service(ChromeDriverManager().install())

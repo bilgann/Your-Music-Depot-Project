@@ -41,6 +41,20 @@ class Lesson:
         )
 
     @staticmethod
+    def get_for_student_in_period(student_id, period_start, period_end, statuses: list):
+        return (
+            DatabaseConnection().client
+            .table("lesson")
+            .select("*")
+            .eq("student_id", student_id)
+            .in_("status", statuses)
+            .gte("start_time", period_start)
+            .lte("start_time", period_end + "T23:59:59")
+            .execute()
+            .data
+        )
+
+    @staticmethod
     def create(data):
         return DatabaseConnection().client.table("lesson").insert(data).execute().data
 

@@ -1,29 +1,25 @@
-from backend.app.singletons.database import DatabaseConnection
-
-
-def _db():
-    return DatabaseConnection().client
+from backend.app.models.lesson import Lesson
 
 
 def get_all_lessons():
-    return _db().table("lesson").select("*").execute().data
+    return Lesson.get_all()
 
 
 def get_lessons_for_week(start, end):
-    return _db().table("lesson").select("*").gte("start_time", start).lte("end_time", end).execute().data
+    return Lesson.get_for_week(start, end)
 
 
 def get_lesson_by_id(lesson_id):
-    return _db().table("lesson").select("*").eq("lesson_id", lesson_id).execute().data
+    return Lesson.get(lesson_id)
 
 
 def create_lesson(data):
-    return _db().table("lesson").insert(data).execute().data
+    return Lesson.create(data)
 
 
 def update_lesson(lesson_id, data):
-    return _db().table("lesson").update(data).eq("lesson_id", lesson_id).execute().data
+    return Lesson.update(lesson_id, data)
 
 
 def delete_lesson(lesson_id):
-    return _db().table("lesson").delete().eq("lesson_id", lesson_id).execute().data
+    return Lesson.delete(lesson_id)

@@ -31,3 +31,11 @@ class Schedule:
             .execute()
             .data
         )
+
+    @staticmethod
+    def instructor_available(instructor_id, start_time, end_time) -> bool:
+        return len(Schedule.get_instructor_conflicts(instructor_id, start_time, end_time)) == 0
+
+    @staticmethod
+    def room_available(room_id, start_time, end_time) -> bool:
+        return len(Schedule.get_room_conflicts(room_id, start_time, end_time)) == 0

@@ -4,10 +4,9 @@ Audit logging service — records who changed what and when.
 All writes are best-effort: a failure here must never break the primary
 operation that triggered it. Callers should not catch exceptions from log().
 """
-import json
 from typing import Any
 
-from backend.app.singletons.database import DatabaseConnection
+from backend.app.models.audit import AuditLog
 
 
 def log(
@@ -31,13 +30,13 @@ def log(
     new_value   : dict of field values after the change  (CREATE / UPDATE)
     """
     try:
-        DatabaseConnection().client.table("audit_log").insert({
+        AuditLog.create({
             "user_id": str(user_id),
             "action": action.upper(),
             "entity_type": entity_type,
             "entity_id": str(entity_id) if entity_id is not None else None,
             "old_value": old_value,
             "new_value": new_value,
-        }).execute()
+        })
     except Exception:
         pass  # audit failures are silent — they must not interrupt the user's request

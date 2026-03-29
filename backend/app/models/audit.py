@@ -12,8 +12,19 @@ class AuditLog:
         self.new_value = new_value
 
     @staticmethod
-    def get_all():
-        return DatabaseConnection().client.table("audit_log").select("*").execute().data
+    def list_filtered(entity_type=None, entity_id=None, limit=200):
+        query = (
+            DatabaseConnection().client
+            .table("audit_log")
+            .select("*")
+            .order("created_at", desc=True)
+            .limit(limit)
+        )
+        if entity_type:
+            query = query.eq("entity_type", entity_type)
+        if entity_id:
+            query = query.eq("entity_id", entity_id)
+        return query.execute().data
 
     @staticmethod
     def get_by_entity(entity_type, entity_id):
