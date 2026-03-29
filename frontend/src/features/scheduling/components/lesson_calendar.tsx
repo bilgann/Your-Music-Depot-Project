@@ -1,43 +1,10 @@
 'use client'
 
-/*
-Scheduling Logic
-
-The system needs to enforce these constraints:
-A lesson is valid only if:
-
-Instructor
-    teaches the instrument
-    student's skill ≥ instructor's minimum level
-Room
-    room supports the instrument
-    capacity fits lesson type (private/group)
-Time
-    instructor not already teaching
-    room not already booked
-    student not already booked
-
-Calendar Loading Flow
-    LessonCalendar.tsx
-            ↓
-    lessonService.getLessons()
-            ↓
-    GET /api/lessons?weekStart
-            ↓
-    lesson_routes.py
-            ↓
-    lesson_repository.py
-            ↓
-    LESSON table
-            ↓
-    Return lessons
-            ↓
-    Calendar renders events
-*/
-
 import React, { useEffect, useState, useMemo, useRef } from 'react'
+import { faPencil, faTrash, faCheck, faXmark, faChevronLeft, faChevronRight, faPlus } from '@fortawesome/free-solid-svg-icons'
 import { Lesson } from '../../../types/index'
 import { getLessons, deleteLesson } from '../api/lesson'
+import Button from '@/components/ui/button'
 import ScheduleLessonModal from './schedule_lesson_modal'
 
 const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -66,6 +33,24 @@ function startOfWeek(d: Date) {
   date.setDate(date.getDate() + diff)
   date.setHours(0, 0, 0, 0)
   return date
+}
+
+function getStatusColor(status: string | null | undefined): string {
+  const colors: Record<string, string> = {
+    'Scheduled': '#C3E4FF',
+    'Completed': '#C3FFD7',
+    'Cancelled': '#FFED7A',
+  }
+  return colors[status ?? ''] || '#cfe9ff'
+}
+
+function getTextColor(bg: string): string {
+  const textForBg: Record<string, string> = {
+    '#C3E4FF': '#0B3A66',
+    '#C3FFD7': '#0B6B3B',
+    '#FFED7A': '#7A5D00',
+  }
+  return textForBg[bg] || '#000'
 }
 
 interface LessonCalendarProps {
@@ -147,11 +132,11 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
   }, [])
 
   const layoutMap = useMemo(() => {
-    const map: Record<number, { col: number, total: number }> = {}
+    const map: Record<string, { col: number, total: number }> = {}
     const days: Lesson[][] = [[], [], [], [], [], []]
-    
+
     for (const lesson of lessons) {
-      const ld = parseISODateToLocal(lesson.date)
+      const ld = parseISODateToLocal(lesson.start_time)
       const dayIdx = (ld.getDay() === 0 ? 6 : ld.getDay() - 1)
       if (dayIdx >= 0 && dayIdx <= 5) days[dayIdx].push(lesson)
     }
@@ -175,7 +160,7 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
         let placed = false
         for (let ci = 0; ci < columnsEnd.length; ci++) {
           if (columnsEnd[ci] <= item.startTotal) {
-            map[item.lesson.lessonID] = { col: ci, total: 0 }
+            map[item.lesson.lesson_id] = { col: ci, total: 0 }
             columnsEnd[ci] = item.endTotal
             placed = true
             break
@@ -183,12 +168,12 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
         }
         if (!placed) {
           columnsEnd.push(item.endTotal)
-          map[item.lesson.lessonID] = { col: columnsEnd.length - 1, total: 0 }
+          map[item.lesson.lesson_id] = { col: columnsEnd.length - 1, total: 0 }
         }
       }
       const totalCols = columnsEnd.length || 1
       for (const item of evs) {
-        if (map[item.lesson.lessonID]) map[item.lesson.lessonID].total = totalCols
+        if (map[item.lesson.lesson_id]) map[item.lesson.lesson_id].total = totalCols
       }
     }
 
@@ -209,35 +194,10 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
 
   const hours = Array.from({ length: 11 }).map((_, i) => 8 + i)
 
-  function getInstrumentColor(instrument: string): string {
-    const colors: Record<string, string> = {
-      'Piano': '#C3E4FF',
-      'Guitar': '#C3FFD7',
-      'Violin': '#FC8C37',
-      'Drums': '#F6254F',
-      'Voice': '#27608F',
-      'Bass': '#FFED7A'
-    }
-    return colors[instrument] || '#cfe9ff'
-  }
-
-  function getTextColor(bg: string): string {
-    const textForBg: Record<string, string> = {
-      '#C3E4FF': '#0B3A66',
-      '#C3FFD7': '#0B6B3B',
-      '#FC8C37': '#7A4300',
-      '#F6254F': '#7A071F',
-      '#27608F': '#07293F',
-      '#FFED7A': '#7A5D00'
-    }
-    return textForBg[bg] || '#000'
-  }
-
-  async function handleDeleteLesson(lessonID: number) {
+  async function handleDeleteLesson(lessonId: string) {
     if (!confirm('Delete this lesson?')) return
-    
     try {
-      await deleteLesson(lessonID)
+      await deleteLesson(lessonId)
       await fetchLessons()
       if (onLessonCreated) onLessonCreated()
     } catch (error) {
@@ -247,7 +207,7 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
   }
 
   function renderLesson(lesson: Lesson) {
-    const lessonDate = parseISODateToLocal(lesson.date)
+    const lessonDate = parseISODateToLocal(lesson.start_time)
     const dayIdx = (lessonDate.getDay() === 0 ? 6 : lessonDate.getDay() - 1)
     if (dayIdx < 0 || dayIdx > 5) return null
 
@@ -263,7 +223,7 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
     const endTotalHours = (eHour + eMin / 60)
     const visibleStart = 8
     const visibleEnd = 18
-    
+
     if (endTotalHours <= visibleStart || startTotalHours >= visibleEnd) return null
 
     const clampedStart = Math.max(startTotalHours, visibleStart)
@@ -274,10 +234,10 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
     const top = (clampedStart - visibleStart) * totalSlotHeight
     const height = durationHours * totalSlotHeight - rowGapPx
 
-    const bg = getInstrumentColor(lesson.instrument)
+    const bg = getStatusColor(lesson.status)
     const textColor = getTextColor(bg)
 
-    const layout = layoutMap[lesson.lessonID] || null
+    const layout = layoutMap[lesson.lesson_id] || null
     const style: React.CSSProperties = {
       top: `${top}px`,
       height: `${height}px`,
@@ -304,51 +264,28 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
       style.right = '4px'
     }
 
+    const timeLabel = start
+      ? `${start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}${end ? ' - ' + end.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''}`
+      : ''
+
     return (
       <div
-        key={lesson.lessonID}
+        key={lesson.lesson_id}
         className={`ac-event ac-event-${dayIdx}`}
         style={style}
-        title={`${lesson.instrument} - ${lesson.instructorName || 'Instructor'}`}
+        title={`${lesson.status ?? 'Lesson'} — ${timeLabel}`}
       >
         {calendarEditMode && (
-          <div className="event-btns-wrapper" style={{ position: 'absolute', top: 6, right: 6, zIndex: 60 }}>
-            <button
-              className="event-edit-btn"
-              onClick={(e) => {
-                e.stopPropagation()
-                setEditingLesson(lesson)
-                setShowModal(true)
-              }}
-              aria-label="Edit lesson"
-            >
-              ✎
-            </button>
-            <button
-              className="event-delete-btn"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleDeleteLesson(lesson.lessonID)
-              }}
-              aria-label="Delete lesson"
-            >
-              ✕
-            </button>
+          <div className="event-btns-wrapper" style={{ position: 'absolute', top: 6, right: 6, zIndex: 60 }} onClick={(e) => e.stopPropagation()}>
+            <Button variant="event-edit"   icon={faPencil} onClick={() => { setEditingLesson(lesson); setShowModal(true) }} title="Edit lesson" />
+            <Button variant="event-delete" icon={faTrash}  onClick={() => handleDeleteLesson(lesson.lesson_id)} title="Delete lesson" />
           </div>
         )}
         <div className="ac-event-name" style={{ fontWeight: 'bold' }}>
-          {lesson.instrument}
+          {lesson.status ?? 'Lesson'}
         </div>
-        <div style={{ fontSize: '0.85rem', marginTop: 2 }}>
-          {lesson.instructorName || 'Instructor'}
-        </div>
-        {lesson.roomName && (
-          <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>
-            Room: {lesson.roomName}
-          </div>
-        )}
         <div className="ac-event-time" style={{ fontSize: '0.8rem', marginTop: 4 }}>
-          {start ? `${start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} - ${end ? end.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''}` : ''}
+          {timeLabel}
         </div>
       </div>
     )
@@ -367,35 +304,25 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
           <div className="today-label">
             {new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
           </div>
-          <button className="today-button" onClick={goToday}>Today</button>
+          <Button variant="cal-control" onClick={goToday}>Today</Button>
         </div>
         <div className="activity-right">
           {!calendarEditMode ? (
-            <button className="edit-cal-btn" onClick={() => setCalendarEditMode(true)}>Edit</button>
+            <Button variant="cal-control" onClick={() => setCalendarEditMode(true)}>Edit</Button>
           ) : (
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="top-save-btn" onClick={() => setCalendarEditMode(false)} aria-label="Save">✓</button>
-              <button className="top-cancel-btn" onClick={() => setCalendarEditMode(false)} aria-label="Cancel">✕</button>
+              <Button variant="cal-save"   icon={faCheck}  onClick={() => setCalendarEditMode(false)} title="Save" />
+              <Button variant="cal-cancel" icon={faXmark}  onClick={() => setCalendarEditMode(false)} title="Cancel" />
             </div>
           )}
-          <button className="new-button" onClick={() => { setEditingLesson(null); setShowModal(true) }}>
-            <span className="plus">+</span>New Lesson
-          </button>
+          <Button variant="primary" icon={faPlus} onClick={() => { setEditingLesson(null); setShowModal(true) }}>New Lesson</Button>
         </div>
       </div>
 
       <div className="week-nav">
         <div className="nav-group">
-          <button className="nav-btn" onClick={prevWeek} aria-label="Previous week">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M15.8333 10.0001H4.16663M4.16663 10.0001L9.99996 15.8334M4.16663 10.0001L9.99996 4.16675" stroke="#5B5B5B" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-          <button className="nav-btn" onClick={nextWeek} aria-label="Next week">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M4.16671 10.0001H15.8334M15.8334 10.0001L10 15.8334M15.8334 10.0001L10 4.16675" stroke="#5B5B5B" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
+          <Button variant="icon" icon={faChevronLeft}  onClick={prevWeek} title="Previous week" />
+          <Button variant="icon" icon={faChevronRight} onClick={nextWeek} title="Next week" />
         </div>
         <div className="days-row">
           {days.map((d, idx) => (
@@ -425,7 +352,7 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
                   <div key={h} className="slot-cell" data-hour={h}></div>
                 ))}
                 {lessons.filter(lesson => {
-                  const ld = parseISODateToLocal(lesson.date)
+                  const ld = parseISODateToLocal(lesson.start_time)
                   return ld.getFullYear() === d.getFullYear() && ld.getMonth() === d.getMonth() && ld.getDate() === d.getDate()
                 }).map(lesson => renderLesson(lesson))}
               </div>

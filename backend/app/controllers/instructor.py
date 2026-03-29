@@ -1,21 +1,29 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, g, request, jsonify
 
+from backend.app.contracts.auth_middleware import require_auth
 from backend.app.contracts.response import ResponseContract
 from backend.app.contracts.validation import error_response, validate
 import backend.app.services.instructor as svc
+import backend.app.services.audit as audit
 
 instructor_bp = Blueprint("instructors", __name__, url_prefix="/api/instructors")
 
 
 @instructor_bp.route("", methods=["GET"])
+@require_auth
 def list_instructors():
     try:
-        return jsonify(ResponseContract(True, "OK", svc.get_all_instructors()).to_dict()), 200
+        page      = int(request.args.get("page", 1))
+        page_size = int(request.args.get("page_size", 20))
+        search    = request.args.get("search", "").strip() or None
+        data, total = svc.list_instructors(page, page_size, search)
+        return jsonify(ResponseContract(True, "OK", data, total=total).to_dict()), 200
     except Exception as e:
         return error_response(e)
 
 
 @instructor_bp.route("/<instructor_id>", methods=["GET"])
+@require_auth
 def get_instructor(instructor_id):
     try:
         data = svc.get_instructor_by_id(instructor_id)
@@ -27,29 +35,38 @@ def get_instructor(instructor_id):
 
 
 @instructor_bp.route("", methods=["POST"])
+@require_auth
 def create_instructor():
     try:
         body = request.get_json()
         validate(body, "instructor")
-        return jsonify(ResponseContract(True, "Instructor created.", svc.create_instructor(body)).to_dict()), 201
+        result = svc.create_instructor(body)
+        audit.log(g.user.id, "CREATE", "instructor",
+                  result[0].get("instructor_id") if result else None, None, body)
+        return jsonify(ResponseContract(True, "Instructor created.", result).to_dict()), 201
     except Exception as e:
         return error_response(e)
 
 
 @instructor_bp.route("/<instructor_id>", methods=["PUT"])
+@require_auth
 def update_instructor(instructor_id):
     try:
         body = request.get_json()
         validate(body, "instructor", partial=True)
-        return jsonify(ResponseContract(True, "Instructor updated.", svc.update_instructor(instructor_id, body)).to_dict()), 200
+        result = svc.update_instructor(instructor_id, body)
+        audit.log(g.user.id, "UPDATE", "instructor", instructor_id, None, body)
+        return jsonify(ResponseContract(True, "Instructor updated.", result).to_dict()), 200
     except Exception as e:
         return error_response(e)
 
 
 @instructor_bp.route("/<instructor_id>", methods=["DELETE"])
+@require_auth
 def delete_instructor(instructor_id):
     try:
         svc.delete_instructor(instructor_id)
+        audit.log(g.user.id, "DELETE", "instructor", instructor_id)
         return jsonify(ResponseContract(True, "Instructor deleted.").to_dict()), 200
     except Exception as e:
         return error_response(e)

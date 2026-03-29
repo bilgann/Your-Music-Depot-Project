@@ -30,16 +30,17 @@ Data Flow (Very Important)
     PostgreSQL
 */
 import React from 'react'
+import Navbar from '@/components/ui/navbar'
 import LessonCalendar from '../../../features/scheduling/components/lesson_calendar'
 
 export default function SchedulePage() {
     return (
-        <div>
-            <h1>Schedule</h1>
+        <>
+            <Navbar title="Schedule" className="page-schedule" />
             <LessonCalendar
                 onLessonCreated={() => {
                     console.log('Lesson created/updated')
                 }}/>
-        </div>
+        </>
     )
 }

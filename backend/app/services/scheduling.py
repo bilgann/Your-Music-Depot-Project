@@ -1,26 +1,24 @@
-# this is where the core scheduling logic will be implemented. 
-# This will include functions to create, update, and delete lessons, as well as any necessary validation and conflict checking.
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from database import supabase
+from backend.app.domain.scheduling import validate_no_instructor_conflict, validate_no_room_conflict
+from backend.app.models.lesson import Lesson
+from backend.app.models.scheduling import Schedule
+
 
 def create_lesson(data):
+    """
+    Create a new lesson after verifying that neither the instructor nor the
+    room has a conflicting booking in the requested time window.
 
-    instructor_id = data["instructorID"]
-    room_id = data["roomID"]
-    start = data["start_time"]
-    end = data["end_time"]
+    Conflict queries are handled by the repository (Schedule model); the
+    domain layer decides whether those conflicts should block creation.
+    """
+    instructor_conflicts = Schedule.get_instructor_conflicts(
+        data["instructor_id"], data["start_time"], data["end_time"]
+    )
+    validate_no_instructor_conflict(instructor_conflicts)
 
-    if not instructor_available(instructor_id, start, end):
-        raise Exception("Instructor is not available during this time.")
+    room_conflicts = Schedule.get_room_conflicts(
+        data["room_id"], data["start_time"], data["end_time"]
+    )
+    validate_no_room_conflict(room_conflicts)
 
-    if not room_available(room_id, start, end):
-        raise Exception("Room is not available during this time.")
-
-    lesson_id = lesson_repository.crate_lesson(data)
-
-    for student in data["students"]:
-        lesson_repository.enroll_student(lesson_id, student)
-
-    return lesson_id
+    return Lesson.create(data)

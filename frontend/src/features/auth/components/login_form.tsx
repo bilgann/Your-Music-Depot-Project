@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+import Button from "@/components/ui/button";
 import { login } from "../api/auth";
 
 export default function LoginForm() {
@@ -67,19 +69,19 @@ export default function LoginForm() {
                         required
                         autoComplete="current-password"
                     />
-                    <button
-                        type="button"
-                        className="login-toggle-password"
+                    <Button
+                        variant="login-toggle"
+                        icon={showPassword ? faEyeSlash : faEye}
                         onClick={() => setShowPassword((prev) => !prev)}
                     >
                         {showPassword ? "Hide" : "Show"}
-                    </button>
+                    </Button>
                 </div>
             </div>
 
-            <button className="login-submit" type="submit" disabled={loading}>
+            <Button variant="login" type="submit" disabled={loading}>
                 {loading ? "Signing in..." : "Sign In"}
-            </button>
+            </Button>
         </form>
     );
 }

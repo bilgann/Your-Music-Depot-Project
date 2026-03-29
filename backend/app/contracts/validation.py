@@ -1,6 +1,6 @@
 from flask import jsonify
 
-from backend.app.contracts.errors import ConflictError, NotFoundError, ValidationError
+from backend.app.exceptions.base import ConflictError, NotFoundError, ValidationError
 from backend.app.contracts.response import ResponseContract
 
 # ── Per-resource schemas ──────────────────────────────────────────────────────
@@ -8,21 +8,33 @@ from backend.app.contracts.response import ResponseContract
 # "types":    optional type checks applied whenever the field is present.
 
 _SCHEMAS: dict = {
+    "person": {
+        "required": ["name"],
+        "types": {"name": str, "email": str, "phone": str},
+    },
+    "client": {
+        "required": [],
+        "types": {"name": str, "email": str, "phone": str, "person_id": str},
+    },
     "instructor": {
         "required": ["name"],
         "types": {"name": str, "email": str, "phone": str},
     },
     "student": {
-        "required": ["name"],
-        "types": {"name": str, "email": str, "phone": str},
+        "required": ["client_id"],
+        "types": {"name": str, "email": str, "phone": str, "person_id": str, "client_id": str},
     },
     "room": {
         "required": ["name"],
         "types": {"name": str, "capacity": int},
     },
     "lesson": {
-        "required": ["student_id", "instructor_id", "room_id", "start_time", "end_time"],
-        "types": {"start_time": str, "end_time": str, "rate": (int, float)},
+        "required": ["instructor_id", "room_id", "start_time", "end_time"],
+        "types": {"start_time": str, "end_time": str, "rate": (int, float), "recurrence": str},
+    },
+    "lesson_enrollment": {
+        "required": ["student_id"],
+        "types": {"student_id": str},
     },
     "invoice": {
         "required": ["student_id", "total_amount"],

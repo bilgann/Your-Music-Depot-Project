@@ -23,7 +23,9 @@ How to call it/ Use it:
 */
 
 import React, { useState, useEffect } from 'react';
+import { faXmark } from '@fortawesome/free-solid-svg-icons';
 import { FormField, FormData, DropdownOption } from '@/types';
+import Button from './button';
 import Dropdown from './drop_down';
 // import '.css';
 
@@ -95,7 +97,7 @@ const Form: React.FC<FormProps> = ({
                             labelKey={field.labelKey}
                             valueKey={field.valueKey}
                             placeholder={field.placeholder}
-                            value={formData[field.name]}
+                            value={(formData[field.name] as string) ?? ""}
                             onChange={(value: string) => handleFieldChange(field.name, value)}
                         />
                         {errors[field.name] && (
@@ -146,7 +148,7 @@ const Form: React.FC<FormProps> = ({
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{title}</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <Button variant="icon" icon={faXmark} className="close-btn" onClick={onClose} />
         </div>
         
         <form onSubmit={handleSubmit} className="modal-form">

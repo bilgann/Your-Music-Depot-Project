@@ -1,9 +1,10 @@
 class ResponseContract:
-    def __init__(self, success: bool, message: str, data=None, errors=None):
+    def __init__(self, success: bool, message: str, data=None, errors=None, total: int = None):
         self.success = success
         self.message = message
         self.data = data
-        self.errors = errors  # list of {"field": ..., "message": ...} for validation failures
+        self.errors = errors
+        self.total = total
 
     def to_dict(self):
         result = {
@@ -13,4 +14,6 @@ class ResponseContract:
         }
         if self.errors is not None:
             result["errors"] = self.errors
+        if self.total is not None:
+            result["total"] = self.total
         return result

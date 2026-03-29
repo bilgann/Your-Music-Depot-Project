@@ -29,36 +29,38 @@ export interface DropdownOption {
 }
 
 export type Lesson = {
-  lessonID: number
-  instructorID: number
-  studentID: number  
-  roomID: number
-  instrument: string
-  lesson_type: string
+  lesson_id: string
+  instructor_id: string
+  student_id?: string | null
+  room_id: string
   start_time: string
   end_time: string
-  status: string
-  date: string
-  // Optional fields from joins
-  instructorName?: string
-  studentName?: string
-  roomName?: string
+  rate?: number | null
+  status?: string | null
+  recurrence?: string | null
 }
 
 export type Instructor = {
-    instructorID: number
+    instructor_id: string
     name: string
-    email: string
+    email: string | null
+    phone: string | null
 }
 
 export type Student = {
-    studentID: number
-    name: string
-    email: string
+    student_id: string
+    person_id: string
+    client_id: string | null
+    person: {
+        person_id: string
+        name: string
+        email: string | null
+        phone: string | null
+    }
 }
 
 export type Room = {
-    roomID: number
-    room_name: string
-    capacity: number
+    room_id: string
+    name: string
+    capacity: number | null
 }

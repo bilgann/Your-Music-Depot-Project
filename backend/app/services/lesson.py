@@ -1,7 +1,7 @@
-try:
-    from backend.app.singletons.database import DatabaseConnection
-except ModuleNotFoundError:
-    from app.singletons.database import DatabaseConnection
+from backend.app.exceptions.base import ConflictError, NotFoundError
+from backend.app.models.lesson import Lesson
+from backend.app.models.lesson_enrollment import LessonEnrollment
+from backend.app.singletons.database import DatabaseConnection
 
 
 def _db():
@@ -291,22 +291,22 @@ def validate_lesson_overlaps(data, exclude_lesson_id=None):
 
 
 def get_all_lessons():
-    return _db().table("lesson").select("*").execute().data
+    return Lesson.get_all()
 
 
 def get_lessons_for_week(start, end):
-    return _db().table("lesson").select("*").gte("start_time", start).lte("end_time", end).execute().data
+    return Lesson.get_for_week(start, end)
 
 
 def get_lesson_by_id(lesson_id):
-    return _db().table("lesson").select("*").eq("lesson_id", lesson_id).execute().data
+    return Lesson.get(lesson_id)
 
 
 def create_lesson(data):
     is_valid, error_msg = validate_lesson_overlaps(data)
     if not is_valid:
         raise ValueError(error_msg)
-    return _db().table("lesson").insert(data).execute().data
+    return Lesson.create(data)
 
 
 def update_lesson(lesson_id, data):
@@ -322,8 +322,41 @@ def update_lesson(lesson_id, data):
     if not is_valid:
         raise ValueError(error_msg)
     
-    return _db().table("lesson").update(data).eq("lesson_id", lesson_id).execute().data
+    return Lesson.update(lesson_id, data)
 
 
 def delete_lesson(lesson_id):
-    return _db().table("lesson").delete().eq("lesson_id", lesson_id).execute().data
+    return Lesson.delete(lesson_id)
+
+
+# ── Enrollment ────────────────────────────────────────────────────────────────
+
+def get_lesson_students(lesson_id):
+    rows = Lesson.get(lesson_id)
+    if not rows:
+        raise NotFoundError("Lesson not found.")
+    return LessonEnrollment.get_by_lesson(lesson_id)
+
+
+def enroll_student(lesson_id, student_id):
+    rows = Lesson.get(lesson_id)
+    if not rows:
+        raise NotFoundError("Lesson not found.")
+    existing = LessonEnrollment.get(lesson_id, student_id)
+    if existing:
+        raise ConflictError("Student is already enrolled in this lesson.")
+    return LessonEnrollment.create(lesson_id, student_id)
+
+
+def record_attendance(lesson_id, student_id, status):
+    existing = LessonEnrollment.get(lesson_id, student_id)
+    if not existing:
+        raise NotFoundError("Enrollment not found.")
+    return LessonEnrollment.record_attendance(lesson_id, student_id, status)
+
+
+def unenroll_student(lesson_id, student_id):
+    existing = LessonEnrollment.get(lesson_id, student_id)
+    if not existing:
+        raise NotFoundError("Enrollment not found.")
+    return LessonEnrollment.delete(lesson_id, student_id)

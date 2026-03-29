@@ -6,7 +6,11 @@ from flask.json.provider import DefaultJSONProvider
 from flask_cors import CORS
 
 from backend.app.contracts.response import ResponseContract
+from backend.app.controllers.attendance_policy import attendance_policy_bp
+from backend.app.controllers.audit import audit_bp
+from backend.app.controllers.client import client_bp
 from backend.app.controllers.instructor import instructor_bp
+from backend.app.controllers.person import person_bp
 from backend.app.controllers.invoice import invoice_bp
 from backend.app.controllers.lesson import lesson_bp
 from backend.app.controllers.payment import payment_bp
@@ -36,7 +40,7 @@ def build_app():
     app.json = _JSONProvider(app)
 
     # CORS — allow the Next.js dev server; tighten origins in production
-    CORS(app, resources={r"/*": {"origins": ["http://localhost:3000"]}},
+    CORS(app, resources={r"/*": {"origins": ["http://localhost:3000", "http://localhost:3001"]}},
          supports_credentials=True)
 
     logger = DBLogger("db_logger").get_logger()
@@ -44,6 +48,10 @@ def build_app():
     Auth(logger=logger)
 
     app.register_blueprint(user_bp)
+    app.register_blueprint(attendance_policy_bp)
+    app.register_blueprint(audit_bp)
+    app.register_blueprint(client_bp)
+    app.register_blueprint(person_bp)
     app.register_blueprint(instructor_bp)
     app.register_blueprint(student_bp)
     app.register_blueprint(room_bp)

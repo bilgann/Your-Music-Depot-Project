@@ -1,25 +1,25 @@
-from backend.app.singletons.database import DatabaseConnection
-
-
-def _db():
-    return DatabaseConnection().client
+from backend.app.models.instructor import Instructor
 
 
 def get_all_instructors():
-    return _db().table("instructor").select("*").execute().data
+    return Instructor.get_all()
+
+
+def list_instructors(page: int = 1, page_size: int = 20, search: str = None):
+    return Instructor.list(page, page_size, search)
 
 
 def get_instructor_by_id(instructor_id):
-    return _db().table("instructor").select("*").eq("instructor_id", instructor_id).execute().data
+    return Instructor.get(instructor_id)
 
 
 def create_instructor(data):
-    return _db().table("instructor").insert(data).execute().data
+    return Instructor.create(data)
 
 
 def update_instructor(instructor_id, data):
-    return _db().table("instructor").update(data).eq("instructor_id", instructor_id).execute().data
+    return Instructor.update(instructor_id, data)
 
 
 def delete_instructor(instructor_id):
-    return _db().table("instructor").delete().eq("instructor_id", instructor_id).execute().data
+    return Instructor.delete(instructor_id)
