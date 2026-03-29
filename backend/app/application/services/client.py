@@ -1,7 +1,7 @@
 from backend.app.domain.person import extract_person_update_fields, prepare_person_linked_create
 from backend.app.common.base import NotFoundError
-from backend.app.infrastructure.models import Client
-from backend.app.infrastructure.models import Person
+from backend.app.infrastructure.database.models import Client
+from backend.app.infrastructure.database.models import Person
 
 
 def get_all_clients():

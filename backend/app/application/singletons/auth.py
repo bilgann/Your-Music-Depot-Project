@@ -5,7 +5,7 @@ from typing import Optional
 
 import jwt
 
-from backend.app.infrastructure.models import User
+from backend.app.infrastructure.database.models import User
 
 _INACTIVITY_LIMIT = datetime.timedelta(minutes=30)
 

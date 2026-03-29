@@ -1,6 +1,6 @@
 from flask import Blueprint, g, request, jsonify
 
-from backend.app.api.dtos.auth_middleware import require_auth, require_admin
+from backend.app.api.middleware.auth import require_auth, require_admin
 from backend.app.api.dtos.response import ResponseContract
 from backend.app.api.dtos.validation import error_response
 import backend.app.application.services.attendance_policy as svc

@@ -1,4 +1,4 @@
-from backend.app.infrastructure.models import Instructor
+from backend.app.infrastructure.database.models import Instructor
 
 
 def get_all_instructors():

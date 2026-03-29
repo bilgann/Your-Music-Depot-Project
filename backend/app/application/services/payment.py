@@ -5,10 +5,10 @@ from backend.app.domain.payment import (
 )
 from backend.app.common.base import NotFoundError
 from backend.app.common.payment import InvalidPaymentAmountError, InvoiceNotFoundError
-from backend.app.infrastructure.models import Client
-from backend.app.infrastructure.models.credit_transaction import CreditTransaction
-from backend.app.infrastructure.models import Invoice
-from backend.app.infrastructure.models import Payment
+from backend.app.infrastructure.database.models import Client
+from backend.app.infrastructure.database.models.credit_transaction import CreditTransaction
+from backend.app.infrastructure.database.models import Invoice
+from backend.app.infrastructure.database.models import Payment
 
 
 # ── Basic CRUD ────────────────────────────────────────────────────────────────

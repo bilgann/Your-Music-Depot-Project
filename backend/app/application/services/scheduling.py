@@ -1,6 +1,6 @@
 from backend.app.domain.scheduling import validate_no_instructor_conflict, validate_no_room_conflict
-from backend.app.infrastructure.models import Lesson
-from backend.app.infrastructure.models import Schedule
+from backend.app.infrastructure.database.models import Lesson
+from backend.app.infrastructure.database.models import Schedule
 
 
 def create_lesson(data):

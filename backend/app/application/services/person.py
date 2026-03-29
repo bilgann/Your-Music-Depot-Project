@@ -1,4 +1,4 @@
-from backend.app.infrastructure.models import Person
+from backend.app.infrastructure.database.models import Person
 
 
 def get_all_persons():

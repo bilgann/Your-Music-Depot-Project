@@ -6,7 +6,7 @@ operation that triggered it. Callers should not catch common from log().
 """
 from typing import Any
 
-from backend.app.infrastructure.models.audit import AuditLog
+from backend.app.infrastructure.database.models.audit import AuditLog
 
 
 def log(

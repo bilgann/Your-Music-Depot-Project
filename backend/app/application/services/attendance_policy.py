@@ -1,6 +1,6 @@
 from backend.app.domain.attendance import validate_policy_data
 from backend.app.common.base import NotFoundError, ValidationError
-from backend.app.infrastructure.models import AttendancePolicy
+from backend.app.infrastructure.database.models import AttendancePolicy
 
 
 def get_all_policies():

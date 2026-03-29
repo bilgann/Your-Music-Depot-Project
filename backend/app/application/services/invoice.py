@@ -3,10 +3,10 @@ from datetime import date
 
 from backend.app.domain.invoice import build_line_items, compute_outstanding_balance
 from backend.app.common.invoice import DuplicateInvoiceError, NoLessonsFoundError
-from backend.app.infrastructure.models import AttendancePolicy
-from backend.app.infrastructure.models import Invoice
-from backend.app.infrastructure.models import Lesson
-from backend.app.infrastructure.models import Student
+from backend.app.infrastructure.database.models import AttendancePolicy
+from backend.app.infrastructure.database.models import Invoice
+from backend.app.infrastructure.database.models import Lesson
+from backend.app.infrastructure.database.models import Student
 
 
 # ── Basic CRUD ────────────────────────────────────────────────────────────────

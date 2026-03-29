@@ -1,6 +1,6 @@
 from flask import Blueprint, g, request, jsonify
 
-from backend.app.api.dtos.auth_middleware import require_admin
+from backend.app.api.middleware.auth import require_admin
 from backend.app.common.base import ValidationError
 from backend.app.api.dtos.response import ResponseContract
 from backend.app.api.dtos.validation import error_response, validate
