@@ -1,3 +1,10 @@
+from backend.app.exceptions.payment import (
+    InvalidPaymentAmountError,
+    InvoiceAlreadyPaidError,
+    InvoiceCancelledError,
+    InvoiceNotFoundError,
+    OverpaymentError,
+)
 from backend.app.singletons.database import DatabaseConnection
 
 
@@ -32,29 +39,29 @@ def record_payment(data: dict) -> dict:
     amount = data.get("amount")
 
     if not invoice_id:
-        raise ValueError("invoice_id is required.")
+        raise InvalidPaymentAmountError("invoice_id is required.")
     if amount is None or float(amount) <= 0:
-        raise ValueError("amount must be greater than 0.")
+        raise InvalidPaymentAmountError("amount must be greater than 0.")
 
     amount = float(amount)
 
     # Fetch invoice
     rows = _db().table("invoice").select("*").eq("invoice_id", invoice_id).execute().data
     if not rows:
-        raise ValueError("Invoice not found.")
+        raise InvoiceNotFoundError("Invoice not found.")
     invoice = rows[0]
 
     if invoice["status"] == "Cancelled":
-        raise ValueError("Cannot pay a cancelled invoice.")
+        raise InvoiceCancelledError("Cannot pay a cancelled invoice.")
     if invoice["status"] == "Paid":
-        raise ValueError("Invoice is already fully paid.")
+        raise InvoiceAlreadyPaidError("Invoice is already fully paid.")
 
     total = float(invoice.get("total_amount", 0))
     already_paid = float(invoice.get("amount_paid", 0))
     outstanding = total - already_paid
 
     if amount > outstanding:
-        raise ValueError(
+        raise OverpaymentError(
             f"Payment of {amount} exceeds outstanding balance of {outstanding:.2f}."
         )
 

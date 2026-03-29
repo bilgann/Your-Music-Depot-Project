@@ -12,6 +12,10 @@ Environment variables (optional)
 import os
 import unittest
 
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(os.path.dirname(__file__), "../../.env"))
+
 from selenium import webdriver
 from selenium.common.exceptions import NoAlertPresentException
 from selenium.webdriver.chrome.options import Options

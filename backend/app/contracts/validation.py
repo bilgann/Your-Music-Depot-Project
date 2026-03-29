@@ -1,6 +1,6 @@
 from flask import jsonify
 
-from backend.app.contracts.errors import ConflictError, NotFoundError, ValidationError
+from backend.app.exceptions.base import ConflictError, NotFoundError, ValidationError
 from backend.app.contracts.response import ResponseContract
 
 # ── Per-resource schemas ──────────────────────────────────────────────────────

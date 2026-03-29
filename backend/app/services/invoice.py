@@ -1,6 +1,7 @@
 import calendar
 from datetime import date
 
+from backend.app.exceptions.invoice import DuplicateInvoiceError, NoLessonsFoundError
 from backend.app.singletons.database import DatabaseConnection
 
 
@@ -54,7 +55,7 @@ def generate_monthly_invoice(student_id, year: int, month: int) -> dict:
         .data
     )
     if existing:
-        raise ValueError(
+        raise DuplicateInvoiceError(
             f"Invoice for student {student_id} covering {period_start} already exists."
         )
 
@@ -71,7 +72,7 @@ def generate_monthly_invoice(student_id, year: int, month: int) -> dict:
         .data
     )
     if not lessons:
-        raise ValueError(
+        raise NoLessonsFoundError(
             f"No Completed or Scheduled lessons found for student {student_id} "
             f"in {year}-{month:02d}."
         )
