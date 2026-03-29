@@ -1,6 +1,7 @@
 import calendar
 from datetime import date
 
+from backend.app.domain.invoice import attendance_label, build_line_items, compute_outstanding_balance
 from backend.app.exceptions.invoice import DuplicateInvoiceError, NoLessonsFoundError
 from backend.app.models.attendance_policy import AttendancePolicy
 from backend.app.models.invoice import Invoice
@@ -34,56 +35,6 @@ def delete_invoice(invoice_id):
     return Invoice.delete(invoice_id)
 
 
-# ── Attendance-based charge calculation ───────────────────────────────────────
-
-def _apply_policy_rule(rate: float, charge_type: str, charge_value: float) -> float:
-    if charge_type == "flat":
-        return round(float(charge_value), 2)
-    if charge_type == "percentage":
-        return round(rate * float(charge_value) / 100, 2)
-    return 0.0  # "none"
-
-
-def _calculate_charge(lesson: dict, default_policy: dict | None) -> float:
-    """
-    Return the charge for a single lesson based on the student's attendance.
-
-    Attendance status → charge rule:
-      Present / null (not yet recorded) → full rate
-      Excused                           → $0
-      Absent                            → absent_charge rule from policy
-      Late Cancel                       → late_cancel_charge rule from policy
-    """
-    rate = float(lesson.get("rate") or 0)
-    status = lesson.get("attendance_status")
-
-    if status == "Excused":
-        return 0.0
-    if status in ("Absent", "Cancelled", "Late Cancel"):
-        policy = lesson.get("attendance_policy") or default_policy
-        if not policy:
-            return rate  # no policy configured → charge in full
-        key = {"Absent": "absent", "Cancelled": "cancel", "Late Cancel": "late_cancel"}[status]
-        return _apply_policy_rule(
-            rate,
-            policy.get(f"{key}_charge_type", "none"),
-            policy.get(f"{key}_charge_value", 0),
-        )
-
-    return rate  # Present or unrecorded → full rate
-
-
-def _attendance_label(status: str | None) -> str:
-    return {
-        "Present": "Present",
-        "Absent": "Absent",
-        "Cancelled": "Cancelled",
-        "Late Cancel": "Late cancellation",
-        "Excused": "Excused",
-        None: "Attended",
-    }.get(status, status or "Attended")
-
-
 # ── Generation ────────────────────────────────────────────────────────────────
 
 def generate_monthly_invoice(student_id, year: int, month: int) -> dict:
@@ -91,14 +42,12 @@ def generate_monthly_invoice(student_id, year: int, month: int) -> dict:
     Generate an invoice for a student covering all Completed/Scheduled lessons
     in the given calendar month.
 
-    Each lesson is charged according to the student's attendance status and the
-    lesson's attendance policy (falling back to the school-wide default policy).
-    Excused absences are $0; regular absences and late cancellations follow the
-    configured charge rules.
+    Charge calculation and line-item assembly are delegated to the domain layer.
+    After creation, any available client credits are applied automatically.
     """
     period_start = date(year, month, 1).isoformat()
-    last_day = calendar.monthrange(year, month)[1]
-    period_end = date(year, month, last_day).isoformat()
+    last_day     = calendar.monthrange(year, month)[1]
+    period_end   = date(year, month, last_day).isoformat()
 
     if Invoice.get_by_student_and_period(student_id, period_start):
         raise DuplicateInvoiceError(
@@ -116,47 +65,31 @@ def generate_monthly_invoice(student_id, year: int, month: int) -> dict:
 
     default_policy = AttendancePolicy.get_default()
 
-    # Resolve billing client from student record
     student_rows = Student.get(student_id)
-    client_id = student_rows[0].get("client_id") if student_rows else None
+    client_id    = student_rows[0].get("client_id") if student_rows else None
 
-    line_items_data = []
-    total_amount = 0.0
-
-    for lesson in lessons:
-        charge = _calculate_charge(lesson, default_policy)
-        label = _attendance_label(lesson.get("attendance_status"))
-        line_items_data.append({
-            "lesson_id": lesson["lesson_id"],
-            "description": f"{label} — {lesson['start_time'][:10]}",
-            "amount": charge,
-            "attendance_status": lesson.get("attendance_status"),
-        })
-        total_amount += charge
-
-    total_amount = round(total_amount, 2)
+    line_items_data, total_amount = build_line_items(lessons, default_policy)
 
     invoice_row = Invoice.create({
-        "student_id": student_id,
-        "client_id": client_id,
+        "student_id":   student_id,
+        "client_id":    client_id,
         "period_start": period_start,
-        "period_end": period_end,
+        "period_end":   period_end,
         "total_amount": total_amount,
-        "amount_paid": 0,
-        "status": "Pending",
+        "amount_paid":  0,
+        "status":       "Pending",
     })[0]
     invoice_id = invoice_row["invoice_id"]
 
-    db_line_items = [
+    Invoice.create_line_items([
         {
-            "invoice_id": invoice_id,
-            "lesson_id": item["lesson_id"],
+            "invoice_id":  invoice_id,
+            "lesson_id":   item["lesson_id"],
             "description": item["description"],
-            "amount": item["amount"],
+            "amount":      item["amount"],
         }
         for item in line_items_data
-    ]
-    Invoice.create_line_items(db_line_items)
+    ])
 
     # Auto-apply client credits to the new invoice
     if client_id:
@@ -181,8 +114,7 @@ def get_outstanding_balance(client_id=None) -> dict:
     pending = Invoice.get_pending()
     if client_id:
         pending = [inv for inv in pending if inv.get("client_id") == client_id]
-    total = sum(
-        float(inv.get("total_amount", 0)) - float(inv.get("amount_paid", 0))
-        for inv in pending
-    )
-    return {"invoices": pending, "total_outstanding_balance": total}
+    return {
+        "invoices":                  pending,
+        "total_outstanding_balance": compute_outstanding_balance(pending),
+    }

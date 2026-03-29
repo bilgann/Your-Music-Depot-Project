@@ -1,7 +1,5 @@
 from backend.app.singletons.database import DatabaseConnection
 
-VALID_CHARGE_TYPES = {"none", "flat", "percentage"}
-
 
 class AttendancePolicy:
     def __init__(self, policy_id, name,

@@ -1,11 +1,10 @@
-from backend.app.exceptions.payment import (
-    InvalidPaymentAmountError,
-    InvoiceAlreadyPaidError,
-    InvoiceCancelledError,
-    InvoiceNotFoundError,
-    OverpaymentError,
+from backend.app.domain.payment import (
+    compute_apply_amount,
+    determine_invoice_status,
+    validate_payment_request,
 )
 from backend.app.exceptions.base import NotFoundError
+from backend.app.exceptions.payment import InvalidPaymentAmountError, InvoiceNotFoundError
 from backend.app.models.client import Client
 from backend.app.models.credit_transaction import CreditTransaction
 from backend.app.models.invoice import Invoice
@@ -38,11 +37,14 @@ def delete_payment(payment_id):
 
 def record_payment(data: dict) -> dict:
     """
-    Validate and record a payment against a specific invoice,
-    then update the invoice's amount_paid and status.
+    Validate and record a payment against a specific invoice, then update
+    the invoice's amount_paid and status.
+
+    Domain rules (guard conditions, overpayment check) are enforced by the
+    domain layer before any writes occur.
     """
     invoice_id = data.get("invoice_id")
-    amount = data.get("amount")
+    amount     = data.get("amount")
 
     if not invoice_id:
         raise InvalidPaymentAmountError("invoice_id is required.")
@@ -56,31 +58,21 @@ def record_payment(data: dict) -> dict:
         raise InvoiceNotFoundError("Invoice not found.")
     invoice = rows[0]
 
-    if invoice["status"] == "Cancelled":
-        raise InvoiceCancelledError("Cannot pay a cancelled invoice.")
-    if invoice["status"] == "Paid":
-        raise InvoiceAlreadyPaidError("Invoice is already fully paid.")
-
-    total = float(invoice.get("total_amount", 0))
-    already_paid = float(invoice.get("amount_paid", 0))
-    outstanding = total - already_paid
-
-    if amount > outstanding:
-        raise OverpaymentError(
-            f"Payment of {amount} exceeds outstanding balance of {outstanding:.2f}."
-        )
+    validate_payment_request(invoice, amount)
 
     payment = Payment.create({
-        "invoice_id": invoice_id,
-        "amount": amount,
+        "invoice_id":     invoice_id,
+        "amount":         amount,
         "payment_method": data.get("payment_method", "Card"),
-        "paid_on": data.get("paid_on"),
-        "notes": data.get("notes", ""),
+        "paid_on":        data.get("paid_on"),
+        "notes":          data.get("notes", ""),
     })[0]
 
-    new_amount_paid = already_paid + amount
-    new_status = "Paid" if new_amount_paid >= total else invoice["status"]
-    Invoice.update(invoice_id, {"amount_paid": new_amount_paid, "status": new_status})
+    total        = float(invoice.get("total_amount", 0))
+    already_paid = float(invoice.get("amount_paid", 0))
+    new_paid     = already_paid + amount
+    new_status   = determine_invoice_status(total, new_paid, invoice["status"])
+    Invoice.update(invoice_id, {"amount_paid": new_paid, "status": new_status})
 
     return payment
 
@@ -95,7 +87,7 @@ def pay_via_client(client_id: str, amount: float, payment_method: str = "Card") 
       1. Apply the incoming amount to the client's oldest Pending invoices first.
       2. Any remainder is added to client.credits for future invoices.
 
-    Returns a summary: invoices paid, invoices partially paid, and credits added.
+    Returns a summary: invoices_applied, credits_added, total_paid.
     """
     client_rows = Client.get(client_id)
     if not client_rows:
@@ -105,30 +97,27 @@ def pay_via_client(client_id: str, amount: float, payment_method: str = "Card") 
     if amount <= 0:
         raise InvalidPaymentAmountError("amount must be greater than 0.")
 
-    # Log the incoming client payment
     CreditTransaction.create(client_id, amount, f"Client payment received ({payment_method})")
 
     remaining = amount
-    applied = []
+    applied   = []
 
-    pending_invoices = Client.get_pending_invoices(client_id)
-    for invoice in pending_invoices:
+    for invoice in Client.get_pending_invoices(client_id):
         if remaining <= 0:
             break
-        result = _apply_amount_to_invoice(client_id, invoice, remaining, payment_method)
+        result     = _apply_amount_to_invoice(client_id, invoice, remaining, payment_method)
         applied.append(result)
-        remaining = round(remaining - result["applied"], 2)
+        remaining  = round(remaining - result["applied"], 2)
 
-    # Remainder → credits
     if remaining > 0:
         current_credits = float(client_rows[0].get("credits", 0))
         Client.update_credits(client_id, current_credits + remaining)
-        CreditTransaction.create(client_id, remaining, "Added to credits — no outstanding invoices")
+        CreditTransaction.create(client_id, remaining, "Added to credits \u2014 no outstanding invoices")
 
     return {
         "invoices_applied": applied,
-        "credits_added": remaining,
-        "total_paid": amount,
+        "credits_added":    remaining,
+        "total_paid":       amount,
     }
 
 
@@ -146,7 +135,7 @@ def try_apply_credits(client_id: str, invoice: dict) -> float:
     if credits <= 0:
         return 0.0
 
-    result = _apply_amount_to_invoice(client_id, invoice, credits, "Credits")
+    result  = _apply_amount_to_invoice(client_id, invoice, credits, "Credits")
     applied = result["applied"]
 
     if applied > 0:
@@ -163,27 +152,28 @@ def try_apply_credits(client_id: str, invoice: dict) -> float:
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
-def _apply_amount_to_invoice(client_id: str, invoice: dict, amount: float, payment_method: str) -> dict:
+def _apply_amount_to_invoice(
+    client_id: str, invoice: dict, amount: float, payment_method: str
+) -> dict:
     """
-    Apply up to `amount` to a single invoice. Creates a Payment record and
-    updates the invoice. Returns {"invoice_id", "applied", "status"}.
-    """
-    total = float(invoice.get("total_amount", 0))
-    already_paid = float(invoice.get("amount_paid", 0))
-    outstanding = round(total - already_paid, 2)
+    Apply up to `amount` to a single invoice using domain rules to determine
+    how much can be applied and what the resulting status should be.
 
-    apply = round(min(amount, outstanding), 2)
+    Creates a Payment record and updates the invoice.  Returns a summary dict.
+    """
+    apply = compute_apply_amount(invoice, amount)
     if apply <= 0:
         return {"invoice_id": invoice["invoice_id"], "applied": 0.0, "status": invoice["status"]}
 
     Payment.create({
-        "invoice_id": invoice["invoice_id"],
-        "amount": apply,
+        "invoice_id":     invoice["invoice_id"],
+        "amount":         apply,
         "payment_method": payment_method,
     })
 
-    new_paid = round(already_paid + apply, 2)
-    new_status = "Paid" if new_paid >= total else invoice["status"]
+    total      = float(invoice.get("total_amount", 0))
+    new_paid   = round(float(invoice.get("amount_paid", 0)) + apply, 2)
+    new_status = determine_invoice_status(total, new_paid, invoice["status"])
     Invoice.update(invoice["invoice_id"], {"amount_paid": new_paid, "status": new_status})
 
     return {"invoice_id": invoice["invoice_id"], "applied": apply, "status": new_status}

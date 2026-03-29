@@ -1,5 +1,6 @@
+from backend.app.domain.attendance import validate_policy_data
 from backend.app.exceptions.base import NotFoundError, ValidationError
-from backend.app.models.attendance_policy import AttendancePolicy, VALID_CHARGE_TYPES
+from backend.app.models.attendance_policy import AttendancePolicy
 
 
 def get_all_policies():
@@ -15,7 +16,7 @@ def get_default_policy():
 
 
 def create_policy(data):
-    _validate_policy_data(data)
+    validate_policy_data(data)
     return AttendancePolicy.create(data)
 
 
@@ -23,7 +24,7 @@ def update_policy(policy_id, data):
     rows = AttendancePolicy.get(policy_id)
     if not rows:
         raise NotFoundError("Attendance policy not found.")
-    _validate_policy_data(data, partial=True)
+    validate_policy_data(data, partial=True)
     return AttendancePolicy.update(policy_id, data)
 
 
@@ -34,12 +35,3 @@ def delete_policy(policy_id):
     if rows[0].get("is_default"):
         raise ValidationError([{"field": "is_default", "message": "Cannot delete the default policy."}])
     return AttendancePolicy.delete(policy_id)
-
-
-def _validate_policy_data(data: dict, partial: bool = False):
-    errors = []
-    for key in ("absent_charge_type", "cancel_charge_type", "late_cancel_charge_type"):
-        if key in data and data[key] not in VALID_CHARGE_TYPES:
-            errors.append({"field": key, "message": f"Must be one of: {', '.join(VALID_CHARGE_TYPES)}."})
-    if errors:
-        raise ValidationError(errors)
