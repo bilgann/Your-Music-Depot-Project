@@ -1,6 +1,6 @@
 import unittest
 
-from backend.app.singletons.auth import Auth
+from backend.app.application.singletons import Auth
 
 
 class AuthTests(unittest.TestCase):

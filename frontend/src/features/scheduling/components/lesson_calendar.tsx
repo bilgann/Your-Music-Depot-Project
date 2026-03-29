@@ -7,7 +7,11 @@ import { getLessons, deleteLesson } from '../api/lesson'
 import Button from '@/components/ui/button'
 import ScheduleLessonModal from './schedule_lesson_modal'
 
-const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+type CalendarView = 'month' | 'week' | 'day'
+
+const WEEK_DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+const MONTH_DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
 function parseISODateToLocal(dstr: string) {
   if (!dstr) return new Date(dstr)
@@ -35,6 +39,27 @@ function startOfWeek(d: Date) {
   return date
 }
 
+function startOfDay(d: Date) {
+  const date = new Date(d)
+  date.setHours(0, 0, 0, 0)
+  return date
+}
+
+function startOfMonth(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), 1)
+}
+
+function sameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+}
+
+function formatDateLocal(d: Date) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
+}
+
 function getStatusColor(status: string | null | undefined): string {
   const colors: Record<string, string> = {
     'Scheduled': '#C3E4FF',
@@ -59,7 +84,8 @@ interface LessonCalendarProps {
 }
 
 const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonCreated }) => {
-  const [weekStart, setWeekStart] = useState<Date>(startOfWeek(new Date()))
+  const [view, setView] = useState<CalendarView>('week')
+  const [cursor, setCursor] = useState<Date>(startOfWeek(new Date()))
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [showModal, setShowModal] = useState(false)
   const [calendarEditMode, setCalendarEditMode] = useState(false)
@@ -69,15 +95,19 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
   const [rowGapPx, setRowGapPx] = useState<number>(0)
 
   async function fetchLessons() {
-    function formatDateLocal(d: Date) {
-      const y = d.getFullYear()
-      const m = String(d.getMonth() + 1).padStart(2, '0')
-      const dd = String(d.getDate()).padStart(2, '0')
-      return `${y}-${m}-${dd}`
+    let start: string, end: string
+    if (view === 'month') {
+      const first = startOfMonth(cursor)
+      const last = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0)
+      start = formatDateLocal(first)
+      end = formatDateLocal(last)
+    } else if (view === 'week') {
+      start = formatDateLocal(cursor)
+      end = formatDateLocal(new Date(cursor.getTime() + 6 * 24 * 60 * 60 * 1000))
+    } else {
+      start = formatDateLocal(cursor)
+      end = formatDateLocal(cursor)
     }
-
-    const start = formatDateLocal(weekStart)
-    const end = formatDateLocal(new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000))
 
     try {
       const data = await getLessons(start, end)
@@ -88,11 +118,11 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
     }
   }
 
-  useEffect(() => { fetchLessons() }, [weekStart])
+  useEffect(() => { fetchLessons() }, [cursor, view])
 
   useEffect(() => {
-    if (onWeekChange) onWeekChange(weekStart)
-  }, [weekStart, onWeekChange])
+    if (onWeekChange) onWeekChange(cursor)
+  }, [cursor, onWeekChange])
 
   useEffect(() => {
     function measure() {
@@ -111,38 +141,36 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
     return () => window.removeEventListener('resize', measure)
   }, [])
 
-  useEffect(() => {
-    const id = setInterval(() => {
-      const nowStart = startOfWeek(new Date())
-      setWeekStart(prev => {
-        if (!prev) return nowStart
-        if (prev.getTime() !== nowStart.getTime()) return nowStart
-        return prev
+  const viewDays = useMemo(() => {
+    if (view === 'week') {
+      return Array.from({ length: 5 }).map((_, i) => {
+        const d = new Date(cursor)
+        d.setDate(d.getDate() + i)
+        return d
       })
-    }, 60 * 60 * 1000)
-
-    const nowStart = startOfWeek(new Date())
-    setWeekStart(prev => {
-      if (!prev) return nowStart
-      if (prev.getTime() !== nowStart.getTime()) return nowStart
-      return prev
-    })
-
-    return () => clearInterval(id)
-  }, [])
+    } else if (view === 'day') {
+      return [new Date(cursor)]
+    }
+    return []
+  }, [view, cursor])
 
   const layoutMap = useMemo(() => {
+    if (view === 'month') return {}
     const map: Record<string, { col: number, total: number }> = {}
-    const days: Lesson[][] = [[], [], [], [], []]
+    const dayLessons: Lesson[][] = viewDays.map(() => [])
 
     for (const lesson of lessons) {
       const ld = parseISODateToLocal(lesson.start_time)
-      const dayIdx = (ld.getDay() === 0 ? 6 : ld.getDay() - 1)
-      if (dayIdx >= 0 && dayIdx <= 4) days[dayIdx].push(lesson)
+      for (let i = 0; i < viewDays.length; i++) {
+        if (sameDay(ld, viewDays[i])) {
+          dayLessons[i].push(lesson)
+          break
+        }
+      }
     }
 
-    for (let dayIdx = 0; dayIdx < 5; dayIdx++) {
-      const evs = days[dayIdx].map(lesson => {
+    for (let dayIdx = 0; dayIdx < viewDays.length; dayIdx++) {
+      const evs = dayLessons[dayIdx].map(lesson => {
         const start = lesson.start_time ? new Date(lesson.start_time) : null
         const end = lesson.end_time ? new Date(lesson.end_time) : null
         const defaultStart = 9
@@ -178,18 +206,43 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
     }
 
     return map
-  }, [lessons])
+  }, [lessons, viewDays, view])
 
-  function prevWeek() {
-    setWeekStart(new Date(weekStart.getTime() - 7 * 24 * 60 * 60 * 1000))
+  function prev() {
+    if (view === 'month') {
+      setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))
+    } else if (view === 'week') {
+      setCursor(new Date(cursor.getTime() - 7 * 24 * 60 * 60 * 1000))
+    } else {
+      setCursor(new Date(cursor.getTime() - 24 * 60 * 60 * 1000))
+    }
   }
 
-  function nextWeek() {
-    setWeekStart(new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000))
+  function next() {
+    if (view === 'month') {
+      setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))
+    } else if (view === 'week') {
+      setCursor(new Date(cursor.getTime() + 7 * 24 * 60 * 60 * 1000))
+    } else {
+      setCursor(new Date(cursor.getTime() + 24 * 60 * 60 * 1000))
+    }
   }
 
   function goToday() {
-    setWeekStart(startOfWeek(new Date()))
+    if (view === 'month') {
+      setCursor(startOfMonth(new Date()))
+    } else if (view === 'week') {
+      setCursor(startOfWeek(new Date()))
+    } else {
+      setCursor(startOfDay(new Date()))
+    }
+  }
+
+  function switchView(v: CalendarView) {
+    if (v === 'month') setCursor(startOfMonth(cursor))
+    else if (v === 'week') setCursor(startOfWeek(cursor))
+    else setCursor(startOfDay(cursor))
+    setView(v)
   }
 
   const hours = Array.from({ length: 11 }).map((_, i) => 8 + i)
@@ -206,11 +259,7 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
     }
   }
 
-  function renderLesson(lesson: Lesson) {
-    const lessonDate = parseISODateToLocal(lesson.start_time)
-    const dayIdx = (lessonDate.getDay() === 0 ? 6 : lessonDate.getDay() - 1)
-    if (dayIdx < 0 || dayIdx > 4) return null
-
+  function renderLessonBlock(lesson: Lesson, dayIdx: number) {
     const start = lesson.start_time ? new Date(lesson.start_time) : null
     const end = lesson.end_time ? new Date(lesson.end_time) : null
     const defaultStart = 9
@@ -291,11 +340,139 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
     )
   }
 
-  const days = Array.from({ length: 5 }).map((_, i) => {
-    const d = new Date(weekStart)
-    d.setDate(d.getDate() + i)
-    return d
-  })
+  function renderTimeGrid(days: Date[], dayLabels: string[]) {
+    const colCount = days.length
+    return (
+      <>
+        <div className="week-nav">
+          <div className="nav-group">
+            <Button variant="icon" icon={faChevronLeft}  onClick={prev} title="Previous" />
+            <Button variant="icon" icon={faChevronRight} onClick={next} title="Next" />
+          </div>
+          <div className="days-row" style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)` }}>
+            {days.map((d, idx) => (
+              <div key={idx} className="day-header">
+                <div className="day-name">{dayLabels[idx]}</div>
+                <div className="day-date">{d.getDate()}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="calendar-grid">
+          <div className="time-col">
+            {hours.map(h => (
+              <div key={h} className="time-cell">
+                <div className="hour-inner">
+                  {h < 12 ? `${h} AM` : (h === 12 ? '12 PM' : `${h - 12} PM`)}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="days-col" style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)` }}>
+            {days.map((d, dayIdx) => (
+              <div key={dayIdx} className="day-column">
+                <div className="day-grid" style={{ gridTemplateRows: `repeat(${hours.length}, 1fr)` }}>
+                  {hours.map(h => (
+                    <div key={h} className="slot-cell" data-hour={h}></div>
+                  ))}
+                  {lessons.filter(lesson => {
+                    const ld = parseISODateToLocal(lesson.start_time)
+                    return sameDay(ld, d)
+                  }).map(lesson => renderLessonBlock(lesson, dayIdx))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  function renderMonthView() {
+    const year = cursor.getFullYear()
+    const month = cursor.getMonth()
+    const firstDay = new Date(year, month, 1)
+
+    // Build grid starting from the Sunday on or before the first of the month
+    const gridStart = new Date(firstDay)
+    gridStart.setDate(gridStart.getDate() - gridStart.getDay())
+
+    const cells: Date[] = []
+    const cur = new Date(gridStart)
+    while (cells.length < 42) {
+      cells.push(new Date(cur))
+      cur.setDate(cur.getDate() + 1)
+      if (cells.length >= 35 && cur.getMonth() !== month) break
+    }
+
+    const today = new Date()
+
+    const lessonsByDay: Record<string, Lesson[]> = {}
+    for (const lesson of lessons) {
+      const ld = parseISODateToLocal(lesson.start_time)
+      const key = formatDateLocal(ld)
+      if (!lessonsByDay[key]) lessonsByDay[key] = []
+      lessonsByDay[key].push(lesson)
+    }
+
+    return (
+      <>
+        <div className="week-nav">
+          <div className="nav-group">
+            <Button variant="icon" icon={faChevronLeft}  onClick={prev} title="Previous month" />
+            <Button variant="icon" icon={faChevronRight} onClick={next} title="Next month" />
+          </div>
+          <div className="month-nav-title">
+            {MONTH_NAMES[month]} {year}
+          </div>
+        </div>
+        <div className="month-grid">
+          {MONTH_DAY_NAMES.map(name => (
+            <div key={name} className="month-day-name">{name}</div>
+          ))}
+          {cells.map((d, i) => {
+            const isCurrentMonth = d.getMonth() === month
+            const isToday = sameDay(d, today)
+            const key = formatDateLocal(d)
+            const dayLessons = lessonsByDay[key] || []
+            return (
+              <div
+                key={i}
+                className={[
+                  'month-day-cell',
+                  !isCurrentMonth ? 'month-day-other' : '',
+                  isToday ? 'month-day-today' : '',
+                ].filter(Boolean).join(' ')}
+              >
+                <div className="month-day-num">{d.getDate()}</div>
+                <div className="month-chips">
+                  {dayLessons.slice(0, 3).map(lesson => {
+                    const bg = getStatusColor(lesson.status)
+                    const textColor = getTextColor(bg)
+                    const start = lesson.start_time ? new Date(lesson.start_time) : null
+                    const timeStr = start ? start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''
+                    return (
+                      <div
+                        key={lesson.lesson_id}
+                        className="month-chip"
+                        style={{ background: bg, color: textColor }}
+                        title={`${lesson.status ?? 'Lesson'} ${timeStr}`}
+                      >
+                        {timeStr} {lesson.status ?? 'Lesson'}
+                      </div>
+                    )
+                  })}
+                  {dayLessons.length > 3 && (
+                    <div className="month-chip-more">+{dayLessons.length - 3} more</div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </>
+    )
+  }
 
   return (
     <div className="activity-panel" ref={panelRef}>
@@ -305,6 +482,17 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
             {new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
           </div>
           <Button variant="cal-control" onClick={goToday}>Today</Button>
+          <div className="cal-view-tabs">
+            {(['month', 'week', 'day'] as CalendarView[]).map(v => (
+              <button
+                key={v}
+                className={`cal-view-tab${view === v ? ' active' : ''}`}
+                onClick={() => switchView(v)}
+              >
+                {v.charAt(0).toUpperCase() + v.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="activity-right">
           {!calendarEditMode ? (
@@ -319,47 +507,12 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
         </div>
       </div>
 
-      <div className="week-nav">
-        <div className="nav-group">
-          <Button variant="icon" icon={faChevronLeft}  onClick={prevWeek} title="Previous week" />
-          <Button variant="icon" icon={faChevronRight} onClick={nextWeek} title="Next week" />
-        </div>
-        <div className="days-row">
-          {days.map((d, idx) => (
-            <div key={idx} className="day-header">
-              <div className="day-name">{dayNames[idx]}</div>
-              <div className="day-date">{d.getDate()}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="calendar-grid">
-        <div className="time-col">
-          {hours.map(h => (
-            <div key={h} className="time-cell">
-              <div className="hour-inner">
-                {h < 12 ? `${h} AM` : (h === 12 ? '12 PM' : `${h - 12} PM`)}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="days-col">
-          {days.map((d, dayIdx) => (
-            <div key={dayIdx} className="day-column">
-              <div className="day-grid" style={{ gridTemplateRows: `repeat(${hours.length}, 1fr)` }}>
-                {hours.map(h => (
-                  <div key={h} className="slot-cell" data-hour={h}></div>
-                ))}
-                {lessons.filter(lesson => {
-                  const ld = parseISODateToLocal(lesson.start_time)
-                  return ld.getFullYear() === d.getFullYear() && ld.getMonth() === d.getMonth() && ld.getDate() === d.getDate()
-                }).map(lesson => renderLesson(lesson))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {view === 'month' && renderMonthView()}
+      {view === 'week' && renderTimeGrid(viewDays, WEEK_DAY_NAMES)}
+      {view === 'day' && renderTimeGrid(
+        viewDays,
+        [cursor.toLocaleDateString(undefined, { weekday: 'long' })]
+      )}
 
       {showModal && (
         <ScheduleLessonModal

@@ -4,12 +4,12 @@ Integration tests covering:
   P2 Auditing — GET /api/audit accessible to admin only
 """
 import unittest
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
 import jwt
 
-from backend.app.singletons.auth import Auth
-from backend.app.singletons.database import DatabaseConnection
+from backend.app.application.singletons import Auth
+from backend.app.application.singletons.database import DatabaseConnection
 
 _SECRET = "supersecretkey"
 

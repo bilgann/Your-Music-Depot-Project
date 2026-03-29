@@ -8,7 +8,7 @@ Callers (services) are responsible for querying conflicts from the
 repository; this layer only decides what to do with the results.
 """
 
-from backend.app.exceptions.scheduling import InstructorUnavailableError, RoomUnavailableError
+from backend.app.common.scheduling import InstructorUnavailableError, RoomUnavailableError
 
 
 def validate_no_instructor_conflict(conflicts: list) -> None:

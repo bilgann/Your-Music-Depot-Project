@@ -17,13 +17,13 @@ Each test module covers one domain file:
 """
 import unittest
 
-from backend.app.exceptions.base import ValidationError
-from backend.app.exceptions.payment import (
+from backend.app.common.base import ValidationError
+from backend.app.common.payment import (
     InvoiceAlreadyPaidError,
     InvoiceCancelledError,
     OverpaymentError,
 )
-from backend.app.exceptions.scheduling import InstructorUnavailableError, RoomUnavailableError
+from backend.app.common.scheduling import InstructorUnavailableError, RoomUnavailableError
 
 
 # ── domain/attendance.py ──────────────────────────────────────────────────────

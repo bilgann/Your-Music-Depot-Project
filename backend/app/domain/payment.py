@@ -9,7 +9,7 @@ No database access.  Callers are responsible for all persistence.
 
 from __future__ import annotations
 
-from backend.app.exceptions.payment import (
+from backend.app.common.payment import (
     InvoiceAlreadyPaidError,
     InvoiceCancelledError,
     OverpaymentError,
@@ -20,7 +20,7 @@ from backend.app.exceptions.payment import (
 
 def validate_payment_request(invoice: dict, amount: float) -> None:
     """
-    Raise a domain exception if the payment request cannot be applied.
+    Raise a domain exceptions if the payment request cannot be applied.
 
     Checks:
       - Invoice is not Cancelled

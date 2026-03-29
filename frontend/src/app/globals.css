@@ -1240,6 +1240,135 @@ body {
   color: var(--color-danger-dark);
 }
 
+/* ── Calendar view tabs ──────────────────────────────────────────────── */
+.cal-view-tabs {
+  display: flex;
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.cal-view-tab {
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-subtle);
+  background: var(--color-bg);
+  border: none;
+  border-right: 1px solid var(--color-border-input);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.cal-view-tab:last-child {
+  border-right: none;
+}
+
+.cal-view-tab:hover {
+  background: var(--color-bg-hover);
+}
+
+.cal-view-tab.active {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+/* ── Month navigation title ───────────────────────────────────────────── */
+.month-nav-title {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+/* ── Month grid ──────────────────────────────────────────────────────── */
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-top: 1px solid var(--color-border);
+}
+
+.month-day-name {
+  padding: 8px 0;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border-light);
+}
+
+.month-day-name:last-child {
+  border-right: none;
+}
+
+.month-day-cell {
+  min-height: 90px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--color-border-light);
+  border-right: 1px solid var(--color-border-light);
+  vertical-align: top;
+}
+
+.month-day-cell:nth-child(7n) {
+  border-right: none;
+}
+
+.month-day-other .month-day-num {
+  color: var(--color-text-muted);
+  opacity: 0.45;
+}
+
+.month-day-today .month-day-num {
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.month-day-num {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 4px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.month-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.month-chip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.month-chip-more {
+  font-size: 11px;
+  color: var(--color-text-subtle);
+  padding: 1px 4px;
+}
+
 /* ── Footer ──────────────────────────────────────────────────────────── */
 .app-footer {
   text-align: center;

@@ -15,8 +15,8 @@ import time
 import unittest
 from unittest.mock import MagicMock, patch
 
-from backend.app.singletons.auth import Auth
-from backend.app.singletons.database import DatabaseConnection
+from backend.app.application.singletons import Auth
+from backend.app.application.singletons.database import DatabaseConnection
 
 _BACKEND_ROOT = os.path.realpath(
     os.path.join(os.path.dirname(__file__), "..", "..")
@@ -169,7 +169,7 @@ class TestNFRMaintainability(unittest.TestCase):
     def test_domain_directories_exist(self):
         """NFR-04: Expected domain layer directories are present."""
         for folder in ("app/controllers", "app/services", "app/models",
-                       "app/contracts", "app/singletons", "app/domain"):
+                       "app/dtos", "app/singletons", "app/domain"):
             self.assertTrue(
                 self._exists(*folder.split("/")),
                 msg=f"Missing domain directory: {folder}",
@@ -200,9 +200,9 @@ class TestNFRMaintainability(unittest.TestCase):
             )
 
     def test_contracts_module_exists(self):
-        """NFR-04: Shared validation/error contracts are encapsulated in one module."""
+        """NFR-04: Shared validation/error dtos are encapsulated in one module."""
         for mod in ("validation.py", "errors.py", "response.py"):
-            self.assertTrue(self._exists("app", "contracts", mod))
+            self.assertTrue(self._exists("app", "dtos", mod))
 
     def test_singleton_modules_exist(self):
         """NFR-04: Shared services (DB, Auth) are singletons in their own module."""

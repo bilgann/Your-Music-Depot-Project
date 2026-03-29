@@ -16,8 +16,8 @@ A valid JWT is obtained once at module load and included in every request.
 import unittest
 from unittest.mock import MagicMock, patch
 
-from backend.app.singletons.auth import Auth
-from backend.app.singletons.database import DatabaseConnection
+from backend.app.application.singletons import Auth
+from backend.app.application.singletons.database import DatabaseConnection
 
 
 def _build():

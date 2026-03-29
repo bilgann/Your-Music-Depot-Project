@@ -6,15 +6,15 @@ Unit tests covering:
 import unittest
 from unittest.mock import MagicMock
 
-from backend.app.exceptions.invoice import DuplicateInvoiceError, NoLessonsFoundError
-from backend.app.exceptions.payment import (
+from backend.app.common.invoice import DuplicateInvoiceError, NoLessonsFoundError
+from backend.app.common.payment import (
     InvalidPaymentAmountError,
     InvoiceAlreadyPaidError,
     InvoiceCancelledError,
     InvoiceNotFoundError,
     OverpaymentError,
 )
-from backend.app.singletons.database import DatabaseConnection
+from backend.app.application.singletons.database import DatabaseConnection
 
 
 def _mock_db():
@@ -78,7 +78,7 @@ class TestGenerateMonthlyInvoice(unittest.TestCase):
 
     def test_raises_when_invoice_already_exists(self):
         """FR-11: Duplicate invoice for the same student/period is rejected."""
-        from backend.app.services.invoice import generate_monthly_invoice
+        from backend.app.application.services import generate_monthly_invoice
         self._configure(check_result=[{"invoice_id": "existing-1"}], lessons=[])
         with self.assertRaises(DuplicateInvoiceError) as ctx:
             generate_monthly_invoice("s1", 2025, 1)
@@ -86,7 +86,7 @@ class TestGenerateMonthlyInvoice(unittest.TestCase):
 
     def test_raises_when_no_qualifying_lessons(self):
         """FR-11: Invoice cannot be generated without Completed/Scheduled lessons."""
-        from backend.app.services.invoice import generate_monthly_invoice
+        from backend.app.application.services import generate_monthly_invoice
         self._configure(check_result=[], lessons=[])
         with self.assertRaises(NoLessonsFoundError) as ctx:
             generate_monthly_invoice("s1", 2025, 1)
@@ -94,7 +94,7 @@ class TestGenerateMonthlyInvoice(unittest.TestCase):
 
     def test_result_contains_invoice_and_line_items_keys(self):
         """FR-11: Returned dict has 'invoice' and 'line_items' keys."""
-        from backend.app.services.invoice import generate_monthly_invoice
+        from backend.app.application.services import generate_monthly_invoice
         lessons = [{"lesson_id": "l1", "start_time": "2025-01-10T10:00:00", "rate": 50.0}]
         row = {"invoice_id": "inv-1", "total_amount": 50.0, "status": "Pending"}
         self._configure(check_result=[], lessons=lessons, invoice_row=row)
@@ -104,7 +104,7 @@ class TestGenerateMonthlyInvoice(unittest.TestCase):
 
     def test_one_line_item_per_lesson(self):
         """FR-11: Each qualifying lesson produces exactly one line item."""
-        from backend.app.services.invoice import generate_monthly_invoice
+        from backend.app.application.services import generate_monthly_invoice
         lessons = [
             {"lesson_id": f"l{i}", "start_time": f"2025-01-0{i+1}T10:00:00", "rate": 50.0}
             for i in range(3)
@@ -116,7 +116,7 @@ class TestGenerateMonthlyInvoice(unittest.TestCase):
 
     def test_line_item_amounts_sum_to_total(self):
         """FR-11: Sum of line-item amounts equals total invoice value."""
-        from backend.app.services.invoice import generate_monthly_invoice
+        from backend.app.application.services import generate_monthly_invoice
         lessons = [
             {"lesson_id": "l1", "start_time": "2025-01-10T10:00:00", "rate": 40.0},
             {"lesson_id": "l2", "start_time": "2025-01-17T10:00:00", "rate": 60.0},
@@ -129,7 +129,7 @@ class TestGenerateMonthlyInvoice(unittest.TestCase):
 
     def test_invoice_status_is_pending(self):
         """FR-11: Newly generated invoices are created with status 'Pending'."""
-        from backend.app.services.invoice import generate_monthly_invoice
+        from backend.app.application.services import generate_monthly_invoice
         lessons = [{"lesson_id": "l1", "start_time": "2025-01-10T10:00:00", "rate": 50.0}]
         row = {"invoice_id": "inv-1", "status": "Pending", "total_amount": 50.0}
         self._configure(check_result=[], lessons=lessons, invoice_row=row)
@@ -138,7 +138,7 @@ class TestGenerateMonthlyInvoice(unittest.TestCase):
 
     def test_period_covers_full_calendar_month(self):
         """FR-11: period_start is the 1st and period_end is the last day of the month."""
-        from backend.app.services.invoice import generate_monthly_invoice
+        from backend.app.application.services import generate_monthly_invoice
         lessons = [{"lesson_id": "l1", "start_time": "2025-03-15T10:00:00", "rate": 50.0}]
         row = {
             "invoice_id": "inv-1",
@@ -153,7 +153,7 @@ class TestGenerateMonthlyInvoice(unittest.TestCase):
 
     def test_february_non_leap_year_ends_on_28th(self):
         """FR-11: February 2025 period ends on the 28th (non-leap year)."""
-        from backend.app.services.invoice import generate_monthly_invoice
+        from backend.app.application.services import generate_monthly_invoice
         lessons = [{"lesson_id": "l1", "start_time": "2025-02-14T10:00:00", "rate": 50.0}]
         row = {
             "invoice_id": "inv-1",
@@ -167,7 +167,7 @@ class TestGenerateMonthlyInvoice(unittest.TestCase):
 
     def test_line_item_description_includes_lesson_date(self):
         """FR-11: Each line item description references the lesson date."""
-        from backend.app.services.invoice import generate_monthly_invoice
+        from backend.app.application.services import generate_monthly_invoice
         lessons = [{"lesson_id": "l1", "start_time": "2025-01-10T10:00:00", "rate": 50.0}]
         row = {"invoice_id": "inv-1", "total_amount": 50.0}
         self._configure(check_result=[], lessons=lessons, invoice_row=row)
@@ -187,7 +187,7 @@ class TestOutstandingBalance(unittest.TestCase):
 
     def test_sums_pending_invoices_correctly(self):
         """FR-12: Outstanding balance = sum of (total - paid) for all Pending invoices."""
-        from backend.app.services.invoice import get_outstanding_balance
+        from backend.app.application.services import get_outstanding_balance
         pending = [
             {"invoice_id": "i1", "total_amount": 100.0, "amount_paid": 50.0},
             {"invoice_id": "i2", "total_amount": 200.0, "amount_paid": 0.0},
@@ -200,7 +200,7 @@ class TestOutstandingBalance(unittest.TestCase):
 
     def test_no_pending_invoices_returns_zero(self):
         """FR-12: No pending invoices → total outstanding is 0."""
-        from backend.app.services.invoice import get_outstanding_balance
+        from backend.app.application.services import get_outstanding_balance
         self.client.table.return_value.select.return_value.eq.return_value \
             .execute.return_value.data = []
         result = get_outstanding_balance()
@@ -226,23 +226,23 @@ class TestRecordPayment(unittest.TestCase):
             .execute.return_value.data = [invoice]
 
     def test_requires_invoice_id(self):
-        from backend.app.services.payment import record_payment
+        from backend.app.application.services import record_payment
         with self.assertRaises(InvalidPaymentAmountError) as ctx:
             record_payment({"amount": 50.0})
         self.assertIn("invoice_id", str(ctx.exception.errors))
 
     def test_requires_positive_amount(self):
-        from backend.app.services.payment import record_payment
+        from backend.app.application.services import record_payment
         with self.assertRaises(InvalidPaymentAmountError):
             record_payment({"invoice_id": "inv-1", "amount": 0})
 
     def test_rejects_negative_amount(self):
-        from backend.app.services.payment import record_payment
+        from backend.app.application.services import record_payment
         with self.assertRaises(InvalidPaymentAmountError):
             record_payment({"invoice_id": "inv-1", "amount": -10.0})
 
     def test_raises_if_invoice_not_found(self):
-        from backend.app.services.payment import record_payment
+        from backend.app.application.services import record_payment
         self.client.table.return_value.select.return_value.eq.return_value \
             .execute.return_value.data = []
         with self.assertRaises(InvoiceNotFoundError) as ctx:
@@ -250,21 +250,21 @@ class TestRecordPayment(unittest.TestCase):
         self.assertIn("Invoice not found", str(ctx.exception))
 
     def test_raises_on_cancelled_invoice(self):
-        from backend.app.services.payment import record_payment
+        from backend.app.application.services import record_payment
         self._mock_invoice_fetch(self._invoice(status="Cancelled"))
         with self.assertRaises(InvoiceCancelledError) as ctx:
             record_payment({"invoice_id": "inv-1", "amount": 50.0})
         self.assertIn("cancelled", str(ctx.exception).lower())
 
     def test_raises_on_already_paid_invoice(self):
-        from backend.app.services.payment import record_payment
+        from backend.app.application.services import record_payment
         self._mock_invoice_fetch(self._invoice(status="Paid", total=100.0, paid=100.0))
         with self.assertRaises(InvoiceAlreadyPaidError) as ctx:
             record_payment({"invoice_id": "inv-1", "amount": 10.0})
         self.assertIn("fully paid", str(ctx.exception).lower())
 
     def test_raises_when_payment_exceeds_outstanding(self):
-        from backend.app.services.payment import record_payment
+        from backend.app.application.services import record_payment
         self._mock_invoice_fetch(self._invoice(total=100.0, paid=80.0))
         with self.assertRaises(OverpaymentError) as ctx:
             record_payment({"invoice_id": "inv-1", "amount": 50.0})
@@ -272,7 +272,7 @@ class TestRecordPayment(unittest.TestCase):
 
     def test_successful_payment_returns_payment_record(self):
         """FR-12: A valid payment is persisted and returned."""
-        from backend.app.services.payment import record_payment
+        from backend.app.application.services import record_payment
         invoice = self._invoice(total=100.0, paid=0.0)
         payment_row = {"payment_id": "p1", "invoice_id": "inv-1", "amount": 100.0}
         counts = {"invoice": 0}
@@ -293,7 +293,7 @@ class TestRecordPayment(unittest.TestCase):
 
     def test_default_payment_method_is_card(self):
         """FR-12: When payment_method is omitted, 'Card' is used."""
-        from backend.app.services.payment import record_payment
+        from backend.app.application.services import record_payment
         invoice = self._invoice(total=100.0, paid=0.0)
         inserted_data = {}
         counts = {"invoice": 0}

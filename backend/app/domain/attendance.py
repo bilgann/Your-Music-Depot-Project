@@ -5,7 +5,7 @@ Defines what charge types are valid and validates policy data before
 it is persisted.  No database access — pure business rules only.
 """
 
-from backend.app.exceptions.base import ValidationError
+from backend.app.common.base import ValidationError
 
 VALID_CHARGE_TYPES = {"none", "flat", "percentage"}
 

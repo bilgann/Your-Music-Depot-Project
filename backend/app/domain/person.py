@@ -13,7 +13,7 @@ when Mode A is selected (i.e. when prepare_person_linked_create returns a
 non-None person_fields dict).
 """
 
-from backend.app.exceptions.base import ValidationError
+from backend.app.common.base import ValidationError
 
 _PERSON_FIELDS = ("name", "email", "phone")
 
