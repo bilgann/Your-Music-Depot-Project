@@ -73,3 +73,41 @@ def delete_lesson(lesson_id):
         return jsonify(ResponseContract(True, "Lesson deleted.").to_dict()), 200
     except Exception as e:
         return error_response(e)
+
+
+# ── Enrollment ────────────────────────────────────────────────────────────────
+
+@lesson_bp.route("/<lesson_id>/students", methods=["GET"])
+@require_auth
+def list_lesson_students(lesson_id):
+    try:
+        data = svc.get_lesson_students(lesson_id)
+        return jsonify(ResponseContract(True, "OK", data).to_dict()), 200
+    except Exception as e:
+        return error_response(e)
+
+
+@lesson_bp.route("/<lesson_id>/enroll", methods=["POST"])
+@require_auth
+def enroll_student(lesson_id):
+    try:
+        body = request.get_json()
+        validate(body, "lesson_enrollment")
+        result = svc.enroll_student(lesson_id, body["student_id"])
+        audit.log(g.user.id, "CREATE", "lesson_enrollment", lesson_id, None,
+                  {"student_id": body["student_id"]})
+        return jsonify(ResponseContract(True, "Student enrolled.", result).to_dict()), 201
+    except Exception as e:
+        return error_response(e)
+
+
+@lesson_bp.route("/<lesson_id>/enroll/<student_id>", methods=["DELETE"])
+@require_auth
+def unenroll_student(lesson_id, student_id):
+    try:
+        svc.unenroll_student(lesson_id, student_id)
+        audit.log(g.user.id, "DELETE", "lesson_enrollment", lesson_id, None,
+                  {"student_id": student_id})
+        return jsonify(ResponseContract(True, "Student unenrolled.").to_dict()), 200
+    except Exception as e:
+        return error_response(e)

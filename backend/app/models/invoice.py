@@ -3,9 +3,10 @@ from backend.app.singletons.database import DatabaseConnection
 
 class Invoice:
     def __init__(self, invoice_id, student_id, period_start, period_end,
-                 total_amount, amount_paid=0, status="Pending"):
+                 total_amount, amount_paid=0, status="Pending", client_id=None):
         self.invoice_id = invoice_id
         self.student_id = student_id
+        self.client_id = client_id
         self.period_start = period_start
         self.period_end = period_end
         self.total_amount = total_amount
@@ -14,14 +15,20 @@ class Invoice:
 
     @staticmethod
     def get_all():
-        return DatabaseConnection().client.table("invoice").select("*").execute().data
+        return (
+            DatabaseConnection().client
+            .table("invoice")
+            .select("*, client(*, person(*))")
+            .execute()
+            .data
+        )
 
     @staticmethod
     def get(invoice_id):
         return (
             DatabaseConnection().client
             .table("invoice")
-            .select("*")
+            .select("*, client(*, person(*))")
             .eq("invoice_id", invoice_id)
             .execute()
             .data
@@ -32,8 +39,19 @@ class Invoice:
         return (
             DatabaseConnection().client
             .table("invoice")
-            .select("*")
+            .select("*, client(*, person(*))")
             .eq("student_id", student_id)
+            .execute()
+            .data
+        )
+
+    @staticmethod
+    def get_by_client(client_id):
+        return (
+            DatabaseConnection().client
+            .table("invoice")
+            .select("*")
+            .eq("client_id", client_id)
             .execute()
             .data
         )
@@ -55,7 +73,7 @@ class Invoice:
         return (
             DatabaseConnection().client
             .table("invoice")
-            .select("*")
+            .select("*, client(*, person(*))")
             .eq("status", "Pending")
             .execute()
             .data

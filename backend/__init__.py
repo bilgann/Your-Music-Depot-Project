@@ -7,7 +7,9 @@ from flask_cors import CORS
 
 from backend.app.contracts.response import ResponseContract
 from backend.app.controllers.audit import audit_bp
+from backend.app.controllers.client import client_bp
 from backend.app.controllers.instructor import instructor_bp
+from backend.app.controllers.person import person_bp
 from backend.app.controllers.invoice import invoice_bp
 from backend.app.controllers.lesson import lesson_bp
 from backend.app.controllers.payment import payment_bp
@@ -46,6 +48,8 @@ def build_app():
 
     app.register_blueprint(user_bp)
     app.register_blueprint(audit_bp)
+    app.register_blueprint(client_bp)
+    app.register_blueprint(person_bp)
     app.register_blueprint(instructor_bp)
     app.register_blueprint(student_bp)
     app.register_blueprint(room_bp)

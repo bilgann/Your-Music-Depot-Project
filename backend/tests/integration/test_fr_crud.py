@@ -249,7 +249,7 @@ class TestFRCrudLessons(unittest.TestCase):
         res = _client.post("/api/lessons", json={}, headers=_H)
         self.assertEqual(res.status_code, 422)
         fields = [e["field"] for e in res.get_json().get("errors", [])]
-        for f in ("student_id", "instructor_id", "room_id", "start_time", "end_time"):
+        for f in ("instructor_id", "room_id", "start_time", "end_time"):
             self.assertIn(f, fields)
 
     def test_create_lesson_invalid_rate_type_returns_422(self):

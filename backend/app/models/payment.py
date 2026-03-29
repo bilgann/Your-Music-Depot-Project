@@ -12,14 +12,20 @@ class Payment:
 
     @staticmethod
     def get_all():
-        return DatabaseConnection().client.table("payment").select("*").execute().data
+        return (
+            DatabaseConnection().client
+            .table("payment")
+            .select("*, invoice(client_id, student_id, period_start, period_end, client(*, person(*)))")
+            .execute()
+            .data
+        )
 
     @staticmethod
     def get(payment_id):
         return (
             DatabaseConnection().client
             .table("payment")
-            .select("*")
+            .select("*, invoice(client_id, student_id, period_start, period_end, client(*, person(*)))")
             .eq("payment_id", payment_id)
             .execute()
             .data
@@ -32,6 +38,29 @@ class Payment:
             .table("payment")
             .select("*")
             .eq("invoice_id", invoice_id)
+            .execute()
+            .data
+        )
+
+    @staticmethod
+    def get_by_client(client_id):
+        """Return all payments whose invoice belongs to this client."""
+        invoices = (
+            DatabaseConnection().client
+            .table("invoice")
+            .select("invoice_id")
+            .eq("client_id", client_id)
+            .execute()
+            .data
+        )
+        invoice_ids = [inv["invoice_id"] for inv in invoices]
+        if not invoice_ids:
+            return []
+        return (
+            DatabaseConnection().client
+            .table("payment")
+            .select("*")
+            .in_("invoice_id", invoice_ids)
             .execute()
             .data
         )

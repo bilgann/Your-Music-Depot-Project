@@ -43,16 +43,26 @@ class TestValidateInstructor(unittest.TestCase):
 # ── Student ───────────────────────────────────────────────────────────────────
 
 class TestValidateStudent(unittest.TestCase):
-    """FR-16: Student schema — name is required."""
+    """FR-16: Student schema — name or person_id is required (validated at service level)."""
 
-    def test_missing_name_raises(self):
+    def test_missing_name_and_person_id_raises(self):
+        """Service raises ValidationError when neither name nor person_id is supplied."""
+        from unittest.mock import MagicMock
+        from backend.app.singletons.database import DatabaseConnection
+        DatabaseConnection._instance = MagicMock()
+        from backend.app.services.student import create_student
         with self.assertRaises(ValidationError) as ctx:
-            validate({}, "student")
+            create_student({})
         self.assertIn("name", [e["field"] for e in ctx.exception.errors])
 
-    def test_empty_name_raises(self):
+    def test_empty_name_without_person_id_raises(self):
+        """Service raises ValidationError when name is empty and person_id is absent."""
+        from unittest.mock import MagicMock
+        from backend.app.singletons.database import DatabaseConnection
+        DatabaseConnection._instance = MagicMock()
+        from backend.app.services.student import create_student
         with self.assertRaises(ValidationError):
-            validate({"name": ""}, "student")
+            create_student({"name": ""})
 
     def test_valid_student_passes(self):
         validate({"name": "Bob Jones", "email": "bob@example.com"}, "student")
@@ -94,7 +104,7 @@ class TestValidateLesson(unittest.TestCase):
         with self.assertRaises(ValidationError) as ctx:
             validate({}, "lesson")
         fields = [e["field"] for e in ctx.exception.errors]
-        for f in ("student_id", "instructor_id", "room_id", "start_time", "end_time"):
+        for f in ("instructor_id", "room_id", "start_time", "end_time"):
             self.assertIn(f, fields)
 
     def test_rate_rejects_string(self):

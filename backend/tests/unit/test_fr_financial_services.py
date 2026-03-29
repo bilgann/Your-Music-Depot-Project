@@ -36,8 +36,17 @@ class TestGenerateMonthlyInvoice(unittest.TestCase):
         DatabaseConnection._instance = None
 
     def _configure(self, check_result, lessons, invoice_row=None):
-        """Wire the mock DB for the three table calls made during invoice generation."""
+        """Wire the mock DB for the table calls made during invoice generation.
+
+        Query order:
+          1. invoice SELECT  — duplicate check
+          2. lesson_enrollment SELECT — get lesson_ids for student
+          3. lesson SELECT   — filter by lesson_ids, status, date range
+          4. invoice INSERT  — create header
+          5. invoice_line INSERT (absorbed by default MagicMock)
+        """
         counts = {"invoice": 0}
+        enrollment_rows = [{"lesson_id": l["lesson_id"]} for l in lessons]
 
         def side_effect(name):
             m = MagicMock()
@@ -51,9 +60,17 @@ class TestGenerateMonthlyInvoice(unittest.TestCase):
                     # INSERT header
                     m.insert.return_value.execute.return_value.data = \
                         [invoice_row] if invoice_row else []
+            elif name == "lesson_enrollment":
+                # SELECT lesson_id … eq("student_id", …)
+                m.select.return_value.eq.return_value.execute.return_value.data = enrollment_rows
             elif name == "lesson":
-                m.select.return_value.eq.return_value.in_.return_value \
+                # SELECT … in_("lesson_id") .in_("status") .gte() .lte()
+                m.select.return_value.in_.return_value.in_.return_value \
                     .gte.return_value.lte.return_value.execute.return_value.data = lessons
+            elif name == "student":
+                # Student.get(student_id) — return no client so credits block is skipped
+                m.select.return_value.eq.return_value.execute.return_value.data = \
+                    [{"student_id": "s1", "client_id": None}]
             # invoice_line insert absorbed by default MagicMock
             return m
 

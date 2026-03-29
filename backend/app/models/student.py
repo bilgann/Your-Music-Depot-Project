@@ -2,22 +2,27 @@ from backend.app.singletons.database import DatabaseConnection
 
 
 class Student:
-    def __init__(self, student_id, name, email=None, phone=None):
+    def __init__(self, student_id, person_id, client_id=None):
         self.student_id = student_id
-        self.name = name
-        self.email = email
-        self.phone = phone
+        self.person_id = person_id
+        self.client_id = client_id
 
     @staticmethod
     def get_all():
-        return DatabaseConnection().client.table("student").select("*").execute().data
+        return (
+            DatabaseConnection().client
+            .table("student")
+            .select("*, person(*)")
+            .execute()
+            .data
+        )
 
     @staticmethod
     def get(student_id):
         return (
             DatabaseConnection().client
             .table("student")
-            .select("*")
+            .select("*, person(*)")
             .eq("student_id", student_id)
             .execute()
             .data

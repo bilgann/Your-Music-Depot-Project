@@ -4,6 +4,9 @@ from datetime import date
 from backend.app.exceptions.invoice import DuplicateInvoiceError, NoLessonsFoundError
 from backend.app.models.invoice import Invoice
 from backend.app.models.lesson import Lesson
+from backend.app.models.student import Student
+# Imported lazily inside generate_monthly_invoice to avoid circular imports
+# from backend.app.services.payment import try_apply_credits
 
 
 # ── Basic CRUD ────────────────────────────────────────────────────────────────
@@ -14,6 +17,10 @@ def get_all_invoices():
 
 def get_invoice_by_id(invoice_id):
     return Invoice.get(invoice_id)
+
+
+def get_invoices_by_client(client_id):
+    return Invoice.get_by_client(client_id)
 
 
 def create_invoice(data):
@@ -33,9 +40,8 @@ def delete_invoice(invoice_id):
 def generate_monthly_invoice(student_id, year: int, month: int) -> dict:
     """
     Generate an invoice for a student covering all Completed/Scheduled lessons
-    in the given calendar month. Creates one INVOICE row and one INVOICE_LINE
-    row per lesson. Raises an error if lessons are not found or an invoice for
-    this student/period already exists.
+    in the given calendar month. The invoice is billed to the student's client
+    (if one exists). Creates one INVOICE row and one INVOICE_LINE row per lesson.
     """
     period_start = date(year, month, 1).isoformat()
     last_day = calendar.monthrange(year, month)[1]
@@ -55,10 +61,15 @@ def generate_monthly_invoice(student_id, year: int, month: int) -> dict:
             f"in {year}-{month:02d}."
         )
 
+    # Resolve the billing client from the student record
+    student_rows = Student.get(student_id)
+    client_id = student_rows[0].get("client_id") if student_rows else None
+
     total_amount = sum(float(lesson.get("rate", 0)) for lesson in lessons)
 
     invoice_row = Invoice.create({
         "student_id": student_id,
+        "client_id": client_id,
         "period_start": period_start,
         "period_end": period_end,
         "total_amount": total_amount,
@@ -78,6 +89,15 @@ def generate_monthly_invoice(student_id, year: int, month: int) -> dict:
     ]
     Invoice.create_line_items(line_items)
 
+    # Auto-apply client credits to the new invoice
+    if client_id:
+        from backend.app.services.payment import try_apply_credits
+        try_apply_credits(client_id, invoice_row)
+        # Re-fetch so caller sees the updated amount_paid / status
+        updated = Invoice.get(invoice_id)
+        if updated:
+            invoice_row = updated[0]
+
     return {"invoice": invoice_row, "line_items": line_items}
 
 
@@ -89,8 +109,10 @@ def get_line_items(invoice_id) -> list:
 
 # ── Outstanding balance ───────────────────────────────────────────────────────
 
-def get_outstanding_balance() -> dict:
+def get_outstanding_balance(client_id=None) -> dict:
     pending = Invoice.get_pending()
+    if client_id:
+        pending = [inv for inv in pending if inv.get("client_id") == client_id]
     total = sum(
         float(inv.get("total_amount", 0)) - float(inv.get("amount_paid", 0))
         for inv in pending

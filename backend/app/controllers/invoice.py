@@ -38,9 +38,10 @@ def generate_invoice():
 @invoice_bp.route("/outstanding-balance", methods=["GET"])
 @require_admin
 def outstanding_balance():
-    """GET /api/invoices/outstanding-balance"""
+    """GET /api/invoices/outstanding-balance?client_id=xxx"""
     try:
-        return jsonify(ResponseContract(True, "OK", svc.get_outstanding_balance()).to_dict()), 200
+        client_id = request.args.get("client_id")
+        return jsonify(ResponseContract(True, "OK", svc.get_outstanding_balance(client_id)).to_dict()), 200
     except Exception as e:
         return error_response(e)
 
