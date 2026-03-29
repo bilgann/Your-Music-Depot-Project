@@ -276,6 +276,7 @@ body {
 /* ── Dashboard ───────────────────────────────────────────────────────── */
 .dashboard-content {
   max-width: 640px;
+  margin-bottom: 40px;
 }
 
 .dashboard-error {

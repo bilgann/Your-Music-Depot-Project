@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import type { FC } from "react";
 import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import {
-    faHouse, faCalendar, faGraduationCap, faUsers,
+    faHouse, faGraduationCap, faUsers,
     faChalkboardUser, faDoorOpen, faCreditCard,
     faGear, faRightFromBracket,
 } from "@fortawesome/free-solid-svg-icons";
@@ -19,7 +19,6 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
     { label: "Home",        path: "/home",        icon: faHouse },
-    { label: "Schedule",    path: "/schedule",    icon: faCalendar },
     { label: "Students",    path: "/students",    icon: faGraduationCap },
     { label: "Clients",     path: "/clients",     icon: faUsers },
     { label: "Instructors", path: "/instructors", icon: faChalkboardUser },

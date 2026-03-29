@@ -33,9 +33,14 @@ def create_student(data):
       - Pass name (+ optional email/phone) to create a new person and student.
 
     client_id is required and must reference an existing client.
+    Person/name validation runs first so callers receive the most relevant error.
     """
-    _validate_client_exists(data["client_id"])
+    from backend.app.exceptions.base import ValidationError as _VE
     person_fields, student_data = prepare_person_linked_create(data)
+    client_id = student_data.get("client_id")
+    if not client_id:
+        raise _VE([{"field": "client_id", "message": "client_id is required."}])
+    _validate_client_exists(client_id)
     if person_fields is not None:
         person = Person.create(person_fields)
         student_data["person_id"] = person[0]["person_id"]

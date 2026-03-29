@@ -89,7 +89,7 @@ class TestAuditServiceLogging(unittest.TestCase):
         with patch("backend.app.services.student.create_student",
                    return_value=[{"student_id": "s1", "name": "Alice"}]):
             with patch("backend.app.services.audit.log") as mock_log:
-                _client.post("/api/students", json={"name": "Alice"}, headers=_H)
+                _client.post("/api/students", json={"name": "Alice", "client_id": "c1"}, headers=_H)
         mock_log.assert_called_once()
         args = mock_log.call_args[0]
         self.assertEqual(args[1], "CREATE")
@@ -153,7 +153,7 @@ class TestAuditServiceLogging(unittest.TestCase):
             with patch("backend.app.models.audit.AuditLog.create", side_effect=Exception("DB down")):
                 # AuditLog.create raises, but audit.log() catches it silently
                 # This tests the safety wrapper inside services/audit.py
-                res = _client.post("/api/students", json={"name": "Alice"}, headers=_H)
+                res = _client.post("/api/students", json={"name": "Alice", "client_id": "c1"}, headers=_H)
         # Request should succeed regardless of audit failure
         self.assertEqual(res.status_code, 201)
 
