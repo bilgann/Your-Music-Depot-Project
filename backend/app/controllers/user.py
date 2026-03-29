@@ -25,5 +25,7 @@ def logout():
         return jsonify(ResponseContract(False, "No token provided.").to_dict()), 401
 
     token = auth_header.split(" ", 1)[1]
+    if Auth().get_user(token) is None:
+        return jsonify(ResponseContract(False, "Token is invalid or already logged out.").to_dict()), 401
     Auth().drop_token(token)
     return jsonify(ResponseContract(True, "Logged out successfully.").to_dict()), 200
