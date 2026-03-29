@@ -42,10 +42,26 @@ $env:PYTHONPATH="."; python backend/app.py
 cd frontend; npm run dev
 ```
 
-**Then run:**
+**Run all e2e tests:**
 ```powershell
 $env:PYTHONPATH="."; python -m pytest backend/tests/e2e/ -v
 ```
+
+**Run a specific flow:**
+```powershell
+$env:PYTHONPATH="."; python -m pytest backend/tests/e2e/test_login.py -v
+```
+
+| File | Flow |
+|---|---|
+| `test_login.py` | Login / Authentication |
+| `test_dashboard.py` | Dashboard Home |
+| `test_sidebar.py` | Sidebar Navigation |
+| `test_logout.py` | Logout |
+| `test_schedule.py` | Schedule Page (Calendar) |
+| `test_add_lesson_modal.py` | Add Lesson Modal |
+| `test_edit_mode.py` | Edit Mode (lesson edit / delete) |
+| `test_token_persistence.py` | Token Persistence (page refresh) |
 
 **Optional env vars** (set before running):
 ```powershell
