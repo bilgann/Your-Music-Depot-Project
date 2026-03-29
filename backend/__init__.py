@@ -37,7 +37,7 @@ def build_app():
     app.json = _JSONProvider(app)
 
     # CORS — allow the Next.js dev server; tighten origins in production
-    CORS(app, resources={r"/*": {"origins": ["http://localhost:3000"]}},
+    CORS(app, resources={r"/*": {"origins": ["http://localhost:3000", "http://localhost:3001"]}},
          supports_credentials=True)
 
     logger = DBLogger("db_logger").get_logger()

@@ -4,3 +4,5 @@ supabase==2.7.4
 python-dotenv==1.2.2
 PyJWT==2.12.1
 python-json-logger==3.3.0
+selenium>=4.18.0
+webdriver-manager>=4.0.0

@@ -76,7 +76,7 @@ class DatabaseConnection:
         except Exception:
             try:
                 # Fallback: simple select from a known table
-                self.client.table("lessons").select("id").limit(1).execute()
+                self.client.table("lesson").select("lesson_id").limit(1).execute()
             except Exception as e:
                 self._log_error(f"Supabase connection failed: {e}")
                 raise ConnectionError(f"Failed to connect to Supabase: {e}")
