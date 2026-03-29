@@ -1,11 +1,11 @@
 import datetime
-import logging
 import threading
 from typing import Optional
 
 import jwt
 
-from backend.app.infrastructure.database.models import User
+from backend.app.common.logging import LayerLogger
+from backend.app.infrastructure.database.repositories import User
 
 _INACTIVITY_LIMIT = datetime.timedelta(minutes=30)
 
@@ -14,7 +14,7 @@ class Auth:
     _instance = None
     _lock = threading.Lock()
 
-    def __new__(cls, secret_key: Optional[str] = None, logger: Optional[logging.Logger] = None):
+    def __new__(cls, secret_key: Optional[str] = None):
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
@@ -22,8 +22,8 @@ class Auth:
                     cls._instance._secret_key = secret_key or "supersecretkey"
                     cls._instance._algorithm = "HS256"
                     cls._instance._blacklist: set = set()
-                    cls._instance._last_active: dict = {}   # token → last-seen datetime
-                    cls._instance._logger = logger
+                    cls._instance._last_active: dict = {}
+                    cls._instance._logger = LayerLogger("application", "auth").get()
         return cls._instance
 
     # ── Authentication ────────────────────────────────────────────────────────
@@ -39,11 +39,9 @@ class Auth:
                 "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1),
             }
             token = jwt.encode(payload, self._secret_key, algorithm=self._algorithm)
-            if self._logger:
-                self._logger.info(f"User '{username}' authenticated, token issued.")
+            self._logger.info(f"User '{username}' authenticated, token issued.")
             return token
-        if self._logger:
-            self._logger.warning(f"Failed login attempt for username '{username}'.")
+        self._logger.warning(f"Failed login attempt for username '{username}'.")
         return None
 
     # ── Token management ──────────────────────────────────────────────────────
@@ -52,8 +50,7 @@ class Auth:
         """Blacklist a token on logout and remove its inactivity record."""
         self._blacklist.add(token)
         self._last_active.pop(token, None)
-        if self._logger:
-            self._logger.info("Token blacklisted (logout).")
+        self._logger.info("Token blacklisted (logout).")
         return True
 
     def get_user(self, token: str) -> Optional[User]:
@@ -65,26 +62,21 @@ class Auth:
         if token in self._blacklist:
             return None
 
-        # NFR-10: 30-minute inactivity timeout
         last = self._last_active.get(token)
         if last is not None:
             idle = datetime.datetime.now(datetime.timezone.utc) - last
             if idle > _INACTIVITY_LIMIT:
                 self._blacklist.add(token)
                 self._last_active.pop(token, None)
-                if self._logger:
-                    self._logger.info("Token expired due to inactivity.")
+                self._logger.info("Token expired due to inactivity.")
                 return None
 
         try:
             payload = jwt.decode(token, self._secret_key, algorithms=[self._algorithm])
-            # Refresh inactivity clock on every valid use
             self._last_active[token] = datetime.datetime.now(datetime.timezone.utc)
             return User(payload["user_id"], payload["username"], role=payload.get("role", "admin"))
         except jwt.ExpiredSignatureError:
-            if self._logger:
-                self._logger.warning("Token expired.")
+            self._logger.warning("Token expired.")
         except jwt.InvalidTokenError:
-            if self._logger:
-                self._logger.warning("Invalid token.")
+            self._logger.warning("Invalid token.")
         return None

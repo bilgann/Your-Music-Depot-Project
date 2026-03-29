@@ -1,14 +1,14 @@
-from backend.app.domain.payment import (
+from backend.app.domain.services.payment import (
     compute_apply_amount,
     determine_invoice_status,
     validate_payment_request,
 )
-from backend.app.common.base import NotFoundError
-from backend.app.common.payment import InvalidPaymentAmountError, InvoiceNotFoundError
-from backend.app.infrastructure.database.models import Client
-from backend.app.infrastructure.database.models.credit_transaction import CreditTransaction
-from backend.app.infrastructure.database.models import Invoice
-from backend.app.infrastructure.database.models import Payment
+from backend.app.domain.exceptions.exceptions import NotFoundError
+from backend.app.domain.exceptions.exceptions import InvalidPaymentAmountError, InvoiceNotFoundError
+from backend.app.infrastructure.database.repositories import Client
+from backend.app.infrastructure.database.repositories.credit_transaction import CreditTransaction
+from backend.app.infrastructure.database.repositories import Invoice
+from backend.app.infrastructure.database.repositories import Payment
 
 
 # ── Basic CRUD ────────────────────────────────────────────────────────────────

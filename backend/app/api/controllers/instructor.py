@@ -1,8 +1,8 @@
 from flask import Blueprint, g, request, jsonify
 
 from backend.app.api.middleware.auth import require_auth
-from backend.app.api.dtos.response import ResponseContract
-from backend.app.api.dtos.validation import error_response, validate
+from backend.app.api.contracts.response import ResponseContract
+from backend.app.api.contracts.validation import error_response, validate
 import backend.app.application.services.instructor as svc
 import backend.app.application.services.audit as audit
 

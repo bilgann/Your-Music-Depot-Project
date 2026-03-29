@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 
-from backend.app.api.dtos.response import ResponseContract
+from backend.app.api.contracts.response import ResponseContract
 from backend.app.application.singletons.auth import Auth
 
 user_bp = Blueprint('user', __name__, url_prefix='/user')

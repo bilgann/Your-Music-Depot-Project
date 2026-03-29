@@ -1,4 +1,4 @@
-from backend.app.common.base import ConflictError, NotFoundError
+from backend.app.domain.exceptions.exceptions import ConflictError, NotFoundError
 
 
 class DuplicateInvoiceError(ConflictError):

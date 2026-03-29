@@ -1,8 +1,8 @@
 from flask import Blueprint, g, request, jsonify
 
 from backend.app.api.middleware.auth import require_auth, require_admin
-from backend.app.api.dtos.response import ResponseContract
-from backend.app.api.dtos.validation import error_response
+from backend.app.api.contracts.response import ResponseContract
+from backend.app.api.contracts.validation import error_response
 import backend.app.application.services.attendance_policy as svc
 import backend.app.application.services.audit as audit
 
@@ -63,7 +63,7 @@ def create_policy():
     try:
         body = request.get_json() or {}
         if not body.get("name"):
-            from backend.app.common.base import ValidationError
+            from backend.app.domain.exceptions.exceptions import ValidationError
             raise ValidationError([{"field": "name", "message": "name is required."}])
         result = svc.create_policy(body)
         audit.log(g.user.id, "CREATE", "attendance_policy",

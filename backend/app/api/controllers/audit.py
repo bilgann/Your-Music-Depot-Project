@@ -1,9 +1,9 @@
 from flask import Blueprint, request, jsonify
 
 from backend.app.api.middleware.auth import require_admin
-from backend.app.api.dtos.response import ResponseContract
-from backend.app.api.dtos.validation import error_response
-from backend.app.infrastructure.database.models.audit import AuditLog
+from backend.app.api.contracts.response import ResponseContract
+from backend.app.api.contracts.validation import error_response
+from backend.app.infrastructure.database.repositories.audit import AuditLog
 
 audit_bp = Blueprint("audit", __name__, url_prefix="/api/audit")
 

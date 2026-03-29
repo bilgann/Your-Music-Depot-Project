@@ -1,9 +1,9 @@
 from flask import Blueprint, g, request, jsonify
 
 from backend.app.api.middleware.auth import require_admin
-from backend.app.common.base import ValidationError
-from backend.app.api.dtos.response import ResponseContract
-from backend.app.api.dtos.validation import error_response, validate
+from backend.app.domain.exceptions.exceptions import ValidationError
+from backend.app.api.contracts.response import ResponseContract
+from backend.app.api.contracts.validation import error_response, validate
 import backend.app.application.services.invoice as svc
 import backend.app.application.services.audit as audit
 

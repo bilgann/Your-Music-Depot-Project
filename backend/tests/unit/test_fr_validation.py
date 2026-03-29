@@ -8,8 +8,8 @@ import unittest
 
 from flask import Flask
 
-from backend.app.api.dtos.errors import ConflictError, NotFoundError, ValidationError
-from backend.app.api.dtos.validation import error_response, parse_db_error, validate
+from backend.app.domain.exceptions.exceptions import ConflictError, NotFoundError, ValidationError
+from backend.app.api.contracts.validation import error_response, parse_db_error, validate
 
 _app = Flask(__name__)
 
@@ -48,7 +48,7 @@ class TestValidateStudent(unittest.TestCase):
     def test_missing_name_and_person_id_raises(self):
         """Service raises ValidationError when neither name nor person_id is supplied."""
         from unittest.mock import MagicMock
-        from backend.app.application.singletons.database import DatabaseConnection
+        from backend.app.infrastructure.database.database import DatabaseConnection
         DatabaseConnection._instance = MagicMock()
         from backend.app.application.services import create_student
         with self.assertRaises(ValidationError) as ctx:
@@ -58,7 +58,7 @@ class TestValidateStudent(unittest.TestCase):
     def test_empty_name_without_person_id_raises(self):
         """Service raises ValidationError when name is empty and person_id is absent."""
         from unittest.mock import MagicMock
-        from backend.app.application.singletons.database import DatabaseConnection
+        from backend.app.infrastructure.database.database import DatabaseConnection
         DatabaseConnection._instance = MagicMock()
         from backend.app.application.services import create_student
         with self.assertRaises(ValidationError):

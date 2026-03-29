@@ -12,7 +12,7 @@ from functools import wraps
 
 from flask import g, jsonify, request
 
-from backend.app.api.dtos.response import ResponseContract
+from backend.app.api.contracts.response import ResponseContract
 from backend.app.application.singletons.auth import Auth
 
 

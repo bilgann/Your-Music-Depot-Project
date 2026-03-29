@@ -1,4 +1,4 @@
-from backend.app.common.base import ConflictError, NotFoundError, ValidationError
+from backend.app.domain.exceptions.exceptions import ConflictError, NotFoundError, ValidationError
 
 
 class InvalidPaymentAmountError(ValidationError):

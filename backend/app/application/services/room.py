@@ -1,4 +1,4 @@
-from backend.app.infrastructure.database.models import Room
+from backend.app.infrastructure.database.repositories import Room
 
 
 def get_all_rooms():

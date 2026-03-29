@@ -1,17 +1,4 @@
-class ValidationError(Exception):
-    """Raised when request data fails field-level validation. Carries a list of
-    per-field error dicts: [{"field": "name", "message": "name is required."}]"""
+# Re-exports for backward compatibility. Import from backend.app.domain.exceptions directly.
+from backend.app.domain.exceptions.exceptions import ConflictError, NotFoundError, ValidationError
 
-    def __init__(self, errors: list):
-        self.errors = errors
-        super().__init__("Validation failed.")
-
-
-class NotFoundError(Exception):
-    """Raised when a requested resource does not exist."""
-    pass
-
-
-class ConflictError(Exception):
-    """Raised for referential integrity violations or duplicate-key errors."""
-    pass
+__all__ = ["ValidationError", "NotFoundError", "ConflictError"]

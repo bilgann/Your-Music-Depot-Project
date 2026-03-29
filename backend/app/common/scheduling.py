@@ -1,4 +1,4 @@
-from backend.app.common.base import ConflictError
+from backend.app.domain.exceptions.exceptions import ConflictError
 
 
 class InstructorUnavailableError(ConflictError):

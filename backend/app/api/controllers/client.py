@@ -1,10 +1,10 @@
 from flask import Blueprint, g, request, jsonify
 
 from backend.app.api.middleware.auth import require_auth
-from backend.app.api.dtos.response import ResponseContract
-from backend.app.api.dtos.validation import error_response, validate
-from backend.app.common.base import ValidationError
-from backend.app.infrastructure.database.models.credit_transaction import CreditTransaction
+from backend.app.api.contracts.response import ResponseContract
+from backend.app.api.contracts.validation import error_response, validate
+from backend.app.domain.exceptions.exceptions import ValidationError
+from backend.app.infrastructure.database.repositories.credit_transaction import CreditTransaction
 import backend.app.application.services.client as svc
 import backend.app.application.services.invoice as invoice_svc
 import backend.app.application.services.payment as payment_svc

@@ -1,4 +1,4 @@
-from backend.app.infrastructure.database.models import Person
+from backend.app.infrastructure.database.repositories import Person
 
 
 def get_all_persons():

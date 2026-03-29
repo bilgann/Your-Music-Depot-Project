@@ -1,6 +1,6 @@
-from backend.app.common.base import ConflictError, NotFoundError
-from backend.app.infrastructure.database.models import Lesson
-from backend.app.infrastructure.database.models import LessonEnrollment
+from backend.app.domain.exceptions.exceptions import ConflictError, NotFoundError
+from backend.app.infrastructure.database.repositories import Lesson
+from backend.app.infrastructure.database.repositories import LessonEnrollment
 
 
 def get_all_lessons():

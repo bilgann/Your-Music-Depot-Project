@@ -6,15 +6,15 @@ Unit tests covering:
 import unittest
 from unittest.mock import MagicMock
 
-from backend.app.common.invoice import DuplicateInvoiceError, NoLessonsFoundError
-from backend.app.common.payment import (
+from backend.app.domain.exceptions.exceptions import DuplicateInvoiceError, NoLessonsFoundError
+from backend.app.domain.exceptions.exceptions import (
     InvalidPaymentAmountError,
     InvoiceAlreadyPaidError,
     InvoiceCancelledError,
     InvoiceNotFoundError,
     OverpaymentError,
 )
-from backend.app.application.singletons.database import DatabaseConnection
+from backend.app.infrastructure.database.database import DatabaseConnection
 
 
 def _mock_db():

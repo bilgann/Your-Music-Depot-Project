@@ -1,4 +1,4 @@
-# Backward-compatible re-exports. Import from backend.app.common instead.
-from backend.app.common.base import ConflictError, NotFoundError, ValidationError
+# Moved to backend.app.domain.errors
+from backend.app.domain.exceptions.exceptions import ConflictError, NotFoundError, ValidationError
 
-__all__ = ["ValidationError", "NotFoundError", "ConflictError"]
+__all__ = ['ValidationError', 'NotFoundError', 'ConflictError']

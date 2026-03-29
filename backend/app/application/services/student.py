@@ -1,10 +1,10 @@
-from backend.app.domain.person import extract_person_update_fields, prepare_person_linked_create
-from backend.app.common.base import NotFoundError
-from backend.app.infrastructure.database.models import Client
-from backend.app.infrastructure.database.models import Invoice
-from backend.app.infrastructure.database.models import LessonEnrollment
-from backend.app.infrastructure.database.models import Person
-from backend.app.infrastructure.database.models import Student
+from backend.app.domain.services.person import extract_person_update_fields, prepare_person_linked_create
+from backend.app.domain.exceptions.exceptions import NotFoundError
+from backend.app.infrastructure.database.repositories import Client
+from backend.app.infrastructure.database.repositories import Invoice
+from backend.app.infrastructure.database.repositories import LessonEnrollment
+from backend.app.infrastructure.database.repositories import Person
+from backend.app.infrastructure.database.repositories import Student
 
 
 def get_all_students():
@@ -35,7 +35,7 @@ def create_student(data):
     client_id is required and must reference an existing client.
     Person/name validation runs first so callers receive the most relevant error.
     """
-    from backend.app.common.base import ValidationError as _VE
+    from backend.app.domain.exceptions.exceptions import ValidationError as _VE
     person_fields, student_data = prepare_person_linked_create(data)
     client_id = student_data.get("client_id")
     if not client_id:

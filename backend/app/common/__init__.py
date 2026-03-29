@@ -1,13 +1,13 @@
-from backend.app.common.base import ConflictError, NotFoundError, ValidationError
-from backend.app.common.invoice import DuplicateInvoiceError, NoLessonsFoundError
-from backend.app.common.payment import (
+from backend.app.domain.exceptions.exceptions import ConflictError, NotFoundError, ValidationError
+from backend.app.domain.exceptions.exceptions import DuplicateInvoiceError, NoLessonsFoundError
+from backend.app.domain.exceptions.exceptions import (
     InvalidPaymentAmountError,
     InvoiceAlreadyPaidError,
     InvoiceCancelledError,
     InvoiceNotFoundError,
     OverpaymentError,
 )
-from backend.app.common.scheduling import InstructorUnavailableError, RoomUnavailableError
+from backend.app.domain.exceptions.exceptions import InstructorUnavailableError, RoomUnavailableError
 
 __all__ = [
     "ValidationError",
