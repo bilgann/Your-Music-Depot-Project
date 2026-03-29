@@ -66,3 +66,21 @@ def delete_student(student_id):
         return jsonify(ResponseContract(True, "Student deleted.").to_dict()), 200
     except Exception as e:
         return error_response(e)
+
+
+@student_bp.route("/<student_id>/lessons", methods=["GET"])
+@require_auth
+def get_student_lessons(student_id):
+    try:
+        return jsonify(ResponseContract(True, "OK", svc.get_student_lessons(student_id)).to_dict()), 200
+    except Exception as e:
+        return error_response(e)
+
+
+@student_bp.route("/<student_id>/invoices", methods=["GET"])
+@require_auth
+def get_student_invoices(student_id):
+    try:
+        return jsonify(ResponseContract(True, "OK", svc.get_student_invoices(student_id)).to_dict()), 200
+    except Exception as e:
+        return error_response(e)

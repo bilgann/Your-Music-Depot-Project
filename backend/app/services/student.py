@@ -1,4 +1,6 @@
 from backend.app.exceptions.base import ValidationError
+from backend.app.models.invoice import Invoice
+from backend.app.models.lesson_enrollment import LessonEnrollment
 from backend.app.models.person import Person
 from backend.app.models.student import Student
 
@@ -48,3 +50,11 @@ def update_student(student_id, data):
 
 def delete_student(student_id):
     return Student.delete(student_id)
+
+
+def get_student_lessons(student_id):
+    return LessonEnrollment.get_by_student(student_id)
+
+
+def get_student_invoices(student_id):
+    return Invoice.get_by_student(student_id)

@@ -24,7 +24,7 @@ class LessonEnrollment:
         return (
             DatabaseConnection().client
             .table("lesson_enrollment")
-            .select("lesson_id")
+            .select("*, lesson(*, instructor(*), room(*))")
             .eq("student_id", student_id)
             .execute()
             .data
