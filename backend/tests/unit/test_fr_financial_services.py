@@ -6,6 +6,14 @@ Unit tests covering:
 import unittest
 from unittest.mock import MagicMock
 
+from backend.app.exceptions.invoice import DuplicateInvoiceError, NoLessonsFoundError
+from backend.app.exceptions.payment import (
+    InvalidPaymentAmountError,
+    InvoiceAlreadyPaidError,
+    InvoiceCancelledError,
+    InvoiceNotFoundError,
+    OverpaymentError,
+)
 from backend.app.singletons.database import DatabaseConnection
 
 
@@ -55,7 +63,7 @@ class TestGenerateMonthlyInvoice(unittest.TestCase):
         """FR-11: Duplicate invoice for the same student/period is rejected."""
         from backend.app.services.invoice import generate_monthly_invoice
         self._configure(check_result=[{"invoice_id": "existing-1"}], lessons=[])
-        with self.assertRaises(ValueError) as ctx:
+        with self.assertRaises(DuplicateInvoiceError) as ctx:
             generate_monthly_invoice("s1", 2025, 1)
         self.assertIn("already exists", str(ctx.exception))
 
@@ -63,7 +71,7 @@ class TestGenerateMonthlyInvoice(unittest.TestCase):
         """FR-11: Invoice cannot be generated without Completed/Scheduled lessons."""
         from backend.app.services.invoice import generate_monthly_invoice
         self._configure(check_result=[], lessons=[])
-        with self.assertRaises(ValueError) as ctx:
+        with self.assertRaises(NoLessonsFoundError) as ctx:
             generate_monthly_invoice("s1", 2025, 1)
         self.assertIn("No Completed or Scheduled lessons", str(ctx.exception))
 
@@ -202,46 +210,46 @@ class TestRecordPayment(unittest.TestCase):
 
     def test_requires_invoice_id(self):
         from backend.app.services.payment import record_payment
-        with self.assertRaises(ValueError) as ctx:
+        with self.assertRaises(InvalidPaymentAmountError) as ctx:
             record_payment({"amount": 50.0})
-        self.assertIn("invoice_id", str(ctx.exception))
+        self.assertIn("invoice_id", str(ctx.exception.errors))
 
     def test_requires_positive_amount(self):
         from backend.app.services.payment import record_payment
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidPaymentAmountError):
             record_payment({"invoice_id": "inv-1", "amount": 0})
 
     def test_rejects_negative_amount(self):
         from backend.app.services.payment import record_payment
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidPaymentAmountError):
             record_payment({"invoice_id": "inv-1", "amount": -10.0})
 
     def test_raises_if_invoice_not_found(self):
         from backend.app.services.payment import record_payment
         self.client.table.return_value.select.return_value.eq.return_value \
             .execute.return_value.data = []
-        with self.assertRaises(ValueError) as ctx:
+        with self.assertRaises(InvoiceNotFoundError) as ctx:
             record_payment({"invoice_id": "inv-999", "amount": 50.0})
         self.assertIn("Invoice not found", str(ctx.exception))
 
     def test_raises_on_cancelled_invoice(self):
         from backend.app.services.payment import record_payment
         self._mock_invoice_fetch(self._invoice(status="Cancelled"))
-        with self.assertRaises(ValueError) as ctx:
+        with self.assertRaises(InvoiceCancelledError) as ctx:
             record_payment({"invoice_id": "inv-1", "amount": 50.0})
         self.assertIn("cancelled", str(ctx.exception).lower())
 
     def test_raises_on_already_paid_invoice(self):
         from backend.app.services.payment import record_payment
         self._mock_invoice_fetch(self._invoice(status="Paid", total=100.0, paid=100.0))
-        with self.assertRaises(ValueError) as ctx:
+        with self.assertRaises(InvoiceAlreadyPaidError) as ctx:
             record_payment({"invoice_id": "inv-1", "amount": 10.0})
         self.assertIn("fully paid", str(ctx.exception).lower())
 
     def test_raises_when_payment_exceeds_outstanding(self):
         from backend.app.services.payment import record_payment
         self._mock_invoice_fetch(self._invoice(total=100.0, paid=80.0))
-        with self.assertRaises(ValueError) as ctx:
+        with self.assertRaises(OverpaymentError) as ctx:
             record_payment({"invoice_id": "inv-1", "amount": 50.0})
         self.assertIn("exceeds outstanding balance", str(ctx.exception))
 

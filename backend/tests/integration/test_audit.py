@@ -40,7 +40,7 @@ class TestAuditEndpoint(unittest.TestCase):
     def test_audit_log_accessible_to_admin(self):
         logs = [{"log_id": "l1", "action": "CREATE", "entity_type": "student"}]
         with patch(
-            "backend.app.controllers.audit.DatabaseConnection"
+            "backend.app.models.audit.DatabaseConnection"
         ) as mock_db_cls:
             mock_db_cls.return_value.client.table.return_value \
                 .select.return_value.order.return_value.limit.return_value \
@@ -59,7 +59,7 @@ class TestAuditEndpoint(unittest.TestCase):
 
     def test_audit_log_filtered_by_entity_type(self):
         with patch(
-            "backend.app.controllers.audit.DatabaseConnection"
+            "backend.app.models.audit.DatabaseConnection"
         ) as mock_db_cls:
             chain = mock_db_cls.return_value.client.table.return_value \
                 .select.return_value.order.return_value.limit.return_value
@@ -70,7 +70,7 @@ class TestAuditEndpoint(unittest.TestCase):
 
     def test_audit_log_filtered_by_entity_id(self):
         with patch(
-            "backend.app.controllers.audit.DatabaseConnection"
+            "backend.app.models.audit.DatabaseConnection"
         ) as mock_db_cls:
             chain = mock_db_cls.return_value.client.table.return_value \
                 .select.return_value.order.return_value.limit.return_value
@@ -150,10 +150,9 @@ class TestAuditServiceLogging(unittest.TestCase):
         """Audit failures must be silent — the main operation must still succeed."""
         with patch("backend.app.services.student.create_student",
                    return_value=[{"student_id": "s1"}]):
-            with patch("backend.app.services.audit.log", side_effect=Exception("DB down")):
-                # audit.log raises, but the controller catches it silently
-                # Actually audit.log itself catches exceptions internally, so this
-                # tests the safety wrapper inside audit.py
+            with patch("backend.app.models.audit.AuditLog.create", side_effect=Exception("DB down")):
+                # AuditLog.create raises, but audit.log() catches it silently
+                # This tests the safety wrapper inside services/audit.py
                 res = _client.post("/api/students", json={"name": "Alice"}, headers=_H)
         # Request should succeed regardless of audit failure
         self.assertEqual(res.status_code, 201)

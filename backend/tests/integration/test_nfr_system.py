@@ -33,6 +33,8 @@ def _build():
 
 
 _client = _build()
+_token = _client.post("/user/login?username=barnes&password=password").get_json()["data"]
+_H = {"Authorization": f"Bearer {_token}"}
 
 
 # ── NFR-01: Browser / CORS ────────────────────────────────────────────────────
@@ -74,7 +76,7 @@ class TestNFRSystemIntegration(unittest.TestCase):
 
     def test_success_response_has_required_keys(self):
         with patch("backend.app.services.student.get_all_students", return_value=[]):
-            res = _client.get("/api/students")
+            res = _client.get("/api/students", headers=_H)
         body = res.get_json()
         for key in ("success", "message", "data"):
             self.assertIn(key, body)
@@ -104,7 +106,7 @@ class TestNFRSystemIntegration(unittest.TestCase):
 
     def test_validation_error_includes_field_errors_array(self):
         """NFR-02: 422 validation responses include per-field errors for the frontend."""
-        res = _client.post("/api/students", json={})
+        res = _client.post("/api/students", json={}, headers=_H)
         body = res.get_json()
         self.assertEqual(res.status_code, 422)
         self.assertIn("errors", body)
@@ -249,7 +251,7 @@ class TestNFRPerformanceAndAvailability(unittest.TestCase):
     def test_app_is_available_and_responds(self):
         """NFR-07: Application initialises and serves at least one endpoint."""
         with patch("backend.app.services.student.get_all_students", return_value=[]):
-            res = _client.get("/api/students")
+            res = _client.get("/api/students", headers=_H)
         self.assertIn(res.status_code, (200, 201, 204))
 
     def test_unknown_route_does_not_crash_app(self):
@@ -273,7 +275,7 @@ class TestNFRCapacity(unittest.TestCase):
         ]
         with patch("backend.app.services.student.get_all_students", return_value=dataset):
             t0 = time.perf_counter()
-            res = _client.get("/api/students")
+            res = _client.get("/api/students", headers=_H)
             elapsed = time.perf_counter() - t0
         self.assertEqual(res.status_code, 200)
         self.assertEqual(len(res.get_json()["data"]), 200)
@@ -285,7 +287,7 @@ class TestNFRCapacity(unittest.TestCase):
             for i in range(20)
         ]
         with patch("backend.app.services.instructor.get_all_instructors", return_value=dataset):
-            res = _client.get("/api/instructors")
+            res = _client.get("/api/instructors", headers=_H)
         self.assertEqual(res.status_code, 200)
         self.assertEqual(len(res.get_json()["data"]), 20)
 
@@ -303,7 +305,7 @@ class TestNFRCapacity(unittest.TestCase):
         ]
         with patch("backend.app.services.lesson.get_all_lessons", return_value=dataset):
             t0 = time.perf_counter()
-            res = _client.get("/api/lessons")
+            res = _client.get("/api/lessons", headers=_H)
             elapsed = time.perf_counter() - t0
         self.assertEqual(res.status_code, 200)
         self.assertEqual(len(res.get_json()["data"]), 800)
@@ -326,7 +328,7 @@ class TestNFRPrivacyCompliance(unittest.TestCase):
             "total_amount": 100.0, "amount_paid": 0.0, "status": "Pending",
         }
         with patch("backend.app.services.invoice.get_invoice_by_id", return_value=[invoice]):
-            res = _client.get("/api/invoices/inv-1")
+            res = _client.get("/api/invoices/inv-1", headers=_H)
         record = res.get_json()["data"]
         self.assertIn("period_start", record, "period_start required for 7-year retention")
         self.assertIn("period_end", record, "period_end required for 7-year retention")
@@ -338,7 +340,7 @@ class TestNFRPrivacyCompliance(unittest.TestCase):
             "amount": 50.0, "paid_on": "2025-01-15",
         }
         with patch("backend.app.services.payment.get_payment_by_id", return_value=[payment]):
-            res = _client.get("/api/payments/p1")
+            res = _client.get("/api/payments/p1", headers=_H)
         record = res.get_json()["data"]
         self.assertIn("paid_on", record, "paid_on field required for financial record retention")
 
@@ -349,7 +351,7 @@ class TestNFRPrivacyCompliance(unittest.TestCase):
             "total_amount": 200.0, "amount_paid": 50.0, "status": "Pending",
         }
         with patch("backend.app.services.invoice.get_invoice_by_id", return_value=[invoice]):
-            res = _client.get("/api/invoices/inv-1")
+            res = _client.get("/api/invoices/inv-1", headers=_H)
         record = res.get_json()["data"]
         self.assertIn("total_amount", record)
         self.assertIn("amount_paid", record)
