@@ -12,6 +12,8 @@ from backend.app.infrastructure.database.repositories.payment import Payment
 from backend.app.infrastructure.database.repositories.person import Person
 from backend.app.infrastructure.database.repositories.room import Room
 from backend.app.infrastructure.database.repositories.scheduling import Schedule
+from backend.app.infrastructure.database.repositories.school_schedule import SchoolSchedule
+from backend.app.infrastructure.database.repositories.school_schedule_override import SchoolScheduleOverride
 from backend.app.infrastructure.database.repositories.student import Student
 from backend.app.infrastructure.database.repositories.transaction import Transaction
 from backend.app.infrastructure.database.repositories.user import User
@@ -21,5 +23,6 @@ __all__ = [
     "Instructor", "InstructorStudentCompatibility", "Invoice",
     "Lesson", "LessonEnrollment", "LessonOccurrence",
     "Payment", "Person", "Room", "Schedule",
+    "SchoolSchedule", "SchoolScheduleOverride",
     "Student", "Transaction", "User",
 ]

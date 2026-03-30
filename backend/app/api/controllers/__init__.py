@@ -7,6 +7,7 @@ from backend.app.api.controllers.credential import credential_bp
 from backend.app.api.controllers.instructor import instructor_bp
 from backend.app.api.controllers.invoice import invoice_bp
 from backend.app.api.controllers.lesson import lesson_bp
+from backend.app.api.controllers.school_schedule import school_schedule_bp
 
 __all__ = [
     "attendance_policy_bp",
@@ -18,4 +19,5 @@ __all__ = [
     "instructor_bp",
     "invoice_bp",
     "lesson_bp",
+    "school_schedule_bp",
 ]

@@ -92,6 +92,20 @@ _SCHEMAS: dict = {
             "verdict": str, "reason": str, "initiated_by": str,
         },
     },
+    "school_schedule": {
+        "required": ["label"],
+        "types": {
+            "label": str, "block_type": str,
+            "date": str, "date_range_start": str, "date_range_end": str,
+            "recurrence": str, "is_active": bool,
+        },
+    },
+    "school_schedule_override": {
+        "required": ["entity_type", "entity_id"],
+        "types": {
+            "entity_type": str, "entity_id": str, "reason": str,
+        },
+    },
 }
 
 

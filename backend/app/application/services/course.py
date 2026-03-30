@@ -129,6 +129,16 @@ def project_course_schedule(course_id: str) -> list:
     # Collect blocked times from all participants.
     blocked: list[BlockedTime] = []
 
+    # School-wide blocked times (holidays, vacations) — filtered by overrides.
+    from backend.app.application.services.school_schedule import collect_school_blocked_times
+    override_checks: list[tuple[str, str]] = [
+        ("course", course.course_id),
+        ("room", course.room_id),
+    ]
+    for iid in course.instructor_ids:
+        override_checks.append(("instructor", iid))
+    blocked.extend(collect_school_blocked_times(override_checks))
+
     for iid in course.instructor_ids:
         irows = Instructor.get(iid)
         if irows:

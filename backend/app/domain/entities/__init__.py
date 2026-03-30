@@ -11,6 +11,8 @@ from backend.app.domain.entities.lesson_enrollment import LessonEnrollmentEntity
 from backend.app.domain.entities.lesson_occurrence import LessonOccurrenceEntity
 from backend.app.domain.entities.person import PersonEntity
 from backend.app.domain.entities.room import RoomEntity
+from backend.app.domain.entities.school_schedule import SchoolScheduleEntity
+from backend.app.domain.entities.school_schedule_override import SchoolScheduleOverrideEntity
 from backend.app.domain.entities.student import StudentEntity
 from backend.app.domain.entities.transaction import TransactionEntity
 from backend.app.domain.entities.user import UserEntity
@@ -29,6 +31,8 @@ __all__ = [
     "LessonOccurrenceEntity",
     "PersonEntity",
     "RoomEntity",
+    "SchoolScheduleEntity",
+    "SchoolScheduleOverrideEntity",
     "StudentEntity",
     "TransactionEntity",
     "UserEntity",

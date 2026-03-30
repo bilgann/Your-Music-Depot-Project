@@ -65,7 +65,31 @@ def delete_student(student_id):
 
 
 def get_student_lessons(student_id):
-    return LessonEnrollment.get_by_student(student_id)
+    rows = LessonEnrollment.get_by_student(student_id)
+    return [_reshape_enrollment(r) for r in rows]
+
+
+def _reshape_enrollment(row: dict) -> dict:
+    """Flatten lesson_occurrence into the shape the frontend expects."""
+    occ = row.get("lesson_occurrence") or {}
+    raw_instructor = occ.get("instructor") or {}
+    person = raw_instructor.get("person") or {}
+    instructor_name = person.get("name")
+    raw_room = occ.get("room") or {}
+    return {
+        "enrollment_id":    row.get("enrollment_id"),
+        "attendance_status": row.get("attendance_status"),
+        "enrolled_at":       row.get("enrolled_at"),
+        "lesson": {
+            "lesson_id":   occ.get("occurrence_id"),
+            "start_time":  occ.get("start_time"),
+            "end_time":    occ.get("end_time"),
+            "status":      occ.get("status"),
+            "rate":        occ.get("rate"),
+            "instructor":  {"name": instructor_name} if instructor_name else None,
+            "room":        {"name": raw_room["name"]} if raw_room.get("name") else None,
+        },
+    }
 
 
 def get_student_invoices(student_id):

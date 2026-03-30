@@ -20,7 +20,7 @@ class LessonEnrollment:
         return (
             DatabaseConnection().client
             .table("lesson_enrollment")
-            .select("*, lesson_occurrence(*, lesson(*), course(*), instructor(*), room(*))")
+            .select("*, lesson_occurrence(*, lesson(*), course(*), instructor(*, person(name)), room(name))")
             .eq("student_id", student_id)
             .execute()
             .data

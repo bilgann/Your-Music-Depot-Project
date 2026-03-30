@@ -13,6 +13,7 @@ from backend.app.api.controllers import compatibility_bp
 from backend.app.api.controllers import course_bp
 from backend.app.api.controllers import credential_bp
 from backend.app.api.controllers import instructor_bp
+from backend.app.api.controllers import school_schedule_bp
 from backend.app.api.controllers.person import person_bp
 from backend.app.api.controllers import invoice_bp
 from backend.app.api.controllers import lesson_bp
@@ -62,6 +63,7 @@ def build_app():
     app.register_blueprint(course_bp)
     app.register_blueprint(credential_bp)
     app.register_blueprint(compatibility_bp)
+    app.register_blueprint(school_schedule_bp)
 
     @app.errorhandler(404)
     def not_found(_):

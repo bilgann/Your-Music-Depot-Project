@@ -374,5 +374,339 @@ class TestIsBlocked(unittest.TestCase):
         self.assertFalse(self._blocked("2025-09-05", [bt1, bt2]))
 
 
+# ── project_course_with_accommodation ────────────────────────────────────────
+
+class TestProjectCourseWithAccommodation(unittest.TestCase):
+    """project_course_with_accommodation() — resource substitution logic.
+
+    Course: weekly Mondays Sep 1–28 (Sep 1, 8, 15, 22).
+    Primary: instructor i1, room r1.
+    Alternatives: instructor i2, room r2.
+    """
+
+    def _project(self, course, instructor_blocked=None, room_blocked=None,
+                 student_blocked=None, alt_instructors=None, alt_rooms=None,
+                 lookahead_months=0):
+        from backend.app.domain.services.schedule_projection import (
+            project_course_with_accommodation,
+        )
+        return project_course_with_accommodation(
+            course=course,
+            instructor_blocked=instructor_blocked or {},
+            room_blocked=room_blocked or {},
+            student_blocked=student_blocked or [],
+            alternative_instructor_ids=alt_instructors or [],
+            alternative_room_ids=alt_rooms or [],
+            lookahead_months=lookahead_months,
+        )
+
+    # ── No conflicts ──────────────────────────────────────────────────────────
+
+    def test_no_conflicts_schedules_all_dates(self):
+        course = _course()
+        result = self._project(course)
+        self.assertEqual(len(result.scheduled), 4)
+        self.assertEqual(result.unresolvable, [])
+
+    def test_no_conflicts_uses_primary_instructor_and_room(self):
+        course = _course()
+        result = self._project(course)
+        for occ in result.scheduled:
+            self.assertEqual(occ.instructor_id, "i1")
+            self.assertEqual(occ.room_id, "r1")
+
+    # ── Instructor blocked — substitute instructor ─────────────────────────────
+
+    def test_instructor_blocked_one_date_substituted_with_alt_instructor(self):
+        course = _course()
+        instructor_blocked = {"i1": [_holiday("Away", "2025-09-08")]}
+        result = self._project(course, instructor_blocked=instructor_blocked,
+                               alt_instructors=["i2"])
+        self.assertEqual(len(result.scheduled), 4)
+        self.assertEqual(result.unresolvable, [])
+        sep8 = next(o for o in result.scheduled if o.date == "2025-09-08")
+        self.assertEqual(sep8.instructor_id, "i2")
+        self.assertEqual(sep8.room_id, "r1")
+
+    def test_non_blocked_dates_keep_primary_instructor(self):
+        course = _course()
+        instructor_blocked = {"i1": [_holiday("Away", "2025-09-08")]}
+        result = self._project(course, instructor_blocked=instructor_blocked,
+                               alt_instructors=["i2"])
+        for occ in result.scheduled:
+            if occ.date != "2025-09-08":
+                self.assertEqual(occ.instructor_id, "i1")
+
+    def test_instructor_blocked_no_alt_makes_date_unresolvable(self):
+        course = _course()
+        instructor_blocked = {"i1": [_holiday("Away", "2025-09-08")]}
+        result = self._project(course, instructor_blocked=instructor_blocked)
+        self.assertIn("2025-09-08", result.unresolvable)
+        self.assertEqual(len(result.scheduled), 3)
+
+    def test_all_instructors_blocked_date_is_unresolvable(self):
+        course = _course()
+        instructor_blocked = {
+            "i1": [_holiday("Away i1", "2025-09-15")],
+            "i2": [_holiday("Away i2", "2025-09-15")],
+        }
+        result = self._project(course, instructor_blocked=instructor_blocked,
+                               alt_instructors=["i2"])
+        self.assertIn("2025-09-15", result.unresolvable)
+
+    # ── Room blocked — substitute room ────────────────────────────────────────
+
+    def test_room_blocked_one_date_substituted_with_alt_room(self):
+        course = _course()
+        room_blocked = {"r1": [_holiday("Maintenance", "2025-09-22")]}
+        result = self._project(course, room_blocked=room_blocked, alt_rooms=["r2"])
+        self.assertEqual(len(result.scheduled), 4)
+        sep22 = next(o for o in result.scheduled if o.date == "2025-09-22")
+        self.assertEqual(sep22.room_id, "r2")
+        self.assertEqual(sep22.instructor_id, "i1")
+
+    def test_room_blocked_no_alt_makes_date_unresolvable(self):
+        course = _course()
+        room_blocked = {"r1": [_holiday("Maintenance", "2025-09-01")]}
+        result = self._project(course, room_blocked=room_blocked)
+        self.assertIn("2025-09-01", result.unresolvable)
+
+    def test_all_rooms_blocked_date_is_unresolvable(self):
+        course = _course()
+        room_blocked = {
+            "r1": [_holiday("Closed r1", "2025-09-01")],
+            "r2": [_holiday("Closed r2", "2025-09-01")],
+        }
+        result = self._project(course, room_blocked=room_blocked, alt_rooms=["r2"])
+        self.assertIn("2025-09-01", result.unresolvable)
+
+    # ── Substitution preference order ─────────────────────────────────────────
+
+    def test_prefers_primary_instructor_over_alt_when_both_free(self):
+        course = _course()
+        result = self._project(course, alt_instructors=["i2"])
+        for occ in result.scheduled:
+            self.assertEqual(occ.instructor_id, "i1")
+
+    def test_prefers_alt_room_over_alt_instructor_when_instructor_free(self):
+        """When instructor i1 is blocked but room r1 is free,
+        i1+r2 is preferred over i2+r1."""
+        course = _course()
+        instructor_blocked = {"i1": [_holiday("Away", "2025-09-08")]}
+        # Both i2+r1 and i1+r2 are available; i1+r2 should win (same instructor)
+        result = self._project(course, instructor_blocked=instructor_blocked,
+                               alt_instructors=["i2"], alt_rooms=["r2"])
+        sep8 = next(o for o in result.scheduled if o.date == "2025-09-08")
+        self.assertEqual(sep8.instructor_id, "i2")
+        self.assertEqual(sep8.room_id, "r1")  # room didn't need to change
+
+    def test_falls_back_to_alt_instructor_and_alt_room(self):
+        """Primary instructor + primary room both blocked → use i2 + r2."""
+        course = _course()
+        instructor_blocked = {"i1": [_holiday("Away", "2025-09-08")]}
+        room_blocked = {"r1": [_holiday("Maintenance", "2025-09-08")]}
+        result = self._project(course, instructor_blocked=instructor_blocked,
+                               room_blocked=room_blocked,
+                               alt_instructors=["i2"], alt_rooms=["r2"])
+        sep8 = next(o for o in result.scheduled if o.date == "2025-09-08")
+        self.assertEqual(sep8.instructor_id, "i2")
+        self.assertEqual(sep8.room_id, "r2")
+
+    # ── Student blocked — non-substitutable ───────────────────────────────────
+
+    def test_student_blocked_makes_date_unresolvable_even_with_alts(self):
+        course = _course()
+        student_blocked = [_holiday("Student sick", "2025-09-01")]
+        result = self._project(course, student_blocked=student_blocked,
+                               alt_instructors=["i2"], alt_rooms=["r2"])
+        self.assertIn("2025-09-01", result.unresolvable)
+        self.assertEqual(len(result.scheduled), 3)
+
+    def test_student_blocked_does_not_affect_other_dates(self):
+        course = _course()
+        student_blocked = [_holiday("Student sick", "2025-09-08")]
+        result = self._project(course, student_blocked=student_blocked)
+        self.assertEqual(len(result.unresolvable), 1)
+        self.assertEqual(len(result.scheduled), 3)
+
+    # ── Result structure ──────────────────────────────────────────────────────
+
+    def test_result_has_scheduled_and_unresolvable(self):
+        from backend.app.domain.services.schedule_projection import ScheduleAccommodationResult
+        course = _course()
+        result = self._project(course)
+        self.assertIsInstance(result, ScheduleAccommodationResult)
+        self.assertIsInstance(result.scheduled, list)
+        self.assertIsInstance(result.unresolvable, list)
+
+    def test_occurrence_ids_are_empty_string(self):
+        course = _course()
+        result = self._project(course)
+        for occ in result.scheduled:
+            self.assertEqual(occ.occurrence_id, "")
+
+    def test_scheduled_dates_are_in_order(self):
+        course = _course()
+        result = self._project(course)
+        dates = [o.date for o in result.scheduled]
+        self.assertEqual(dates, sorted(dates))
+
+    def test_no_alternatives_all_primary_blocked_all_unresolvable(self):
+        course = _course()
+        instructor_blocked = {
+            "i1": [
+                _holiday("Away 1", "2025-09-01"),
+                _holiday("Away 8", "2025-09-08"),
+                _holiday("Away 15", "2025-09-15"),
+                _holiday("Away 22", "2025-09-22"),
+            ]
+        }
+        result = self._project(course, instructor_blocked=instructor_blocked)
+        self.assertEqual(result.scheduled, [])
+        self.assertEqual(len(result.unresolvable), 4)
+
+    # ── Lookahead: reschedule when no same-date slot exists ───────────────────
+
+    def test_blocked_date_with_future_opening_goes_to_rescheduled(self):
+        """Sep 1 is blocked; next Monday (Sep 8) is free → rescheduled."""
+        course = _course()
+        instructor_blocked = {"i1": [_holiday("Away", "2025-09-01")]}
+        result = self._project(course, instructor_blocked=instructor_blocked,
+                               lookahead_months=3)
+        # Sep 1 cannot be placed on Sep 1 but finds Sep 8 as next free Monday
+        self.assertEqual(len(result.rescheduled), 1)
+        self.assertEqual(result.rescheduled[0].original_date, "2025-09-01")
+        self.assertGreater(result.rescheduled[0].occurrence.date, "2025-09-01")
+        # The remaining 3 original Mondays still schedule normally
+        self.assertEqual(len(result.scheduled), 3)
+        self.assertEqual(result.unresolvable, [])
+
+    def test_rescheduled_occurrence_tracks_original_date(self):
+        course = _course()
+        instructor_blocked = {"i1": [_holiday("Away", "2025-09-08")]}
+        result = self._project(course, instructor_blocked=instructor_blocked,
+                               lookahead_months=3)
+        self.assertEqual(result.rescheduled[0].original_date, "2025-09-08")
+
+    def test_rescheduled_occurrence_is_after_original_date(self):
+        course = _course()
+        instructor_blocked = {"i1": [_holiday("Away", "2025-09-08")]}
+        result = self._project(course, instructor_blocked=instructor_blocked,
+                               lookahead_months=3)
+        occ = result.rescheduled[0].occurrence
+        self.assertGreater(occ.date, "2025-09-08")
+
+    def test_zero_lookahead_never_reschedules(self):
+        """lookahead_months=0 means the window is empty → all blocked go to unresolvable."""
+        course = _course()
+        instructor_blocked = {"i1": [_holiday("Away", "2025-09-08")]}
+        result = self._project(course, instructor_blocked=instructor_blocked,
+                               lookahead_months=0)
+        self.assertEqual(result.rescheduled, [])
+        self.assertIn("2025-09-08", result.unresolvable)
+
+    def test_student_blocked_goes_to_unresolvable_not_rescheduled(self):
+        """Students can't be substituted — student blocks must never be rescheduled."""
+        course = _course()
+        student_blocked = [_holiday("Student sick", "2025-09-01")]
+        result = self._project(course, student_blocked=student_blocked,
+                               lookahead_months=3)
+        self.assertEqual(result.rescheduled, [])
+        self.assertIn("2025-09-01", result.unresolvable)
+
+    def test_lookahead_uses_same_recurrence_pattern(self):
+        """Rescheduled date must also be a Monday (weekly cron)."""
+        course = _course()
+        instructor_blocked = {"i1": [_holiday("Away", "2025-09-01")]}
+        result = self._project(course, instructor_blocked=instructor_blocked,
+                               lookahead_months=3)
+        from datetime import date as _date
+        new_date = _date.fromisoformat(result.rescheduled[0].occurrence.date)
+        self.assertEqual(new_date.weekday(), 0)  # 0 = Monday
+
+    def test_all_blocked_within_lookahead_stays_unresolvable(self):
+        """Instructor blocked for the entire lookahead window → unresolvable."""
+        course = _course(start="2025-09-01", end="2025-09-01")  # one_time style via cron
+        # Block i1 for a full 4-month span so the 3-month lookahead can't find anything
+        instructor_blocked = {
+            "i1": [_vacation("Long leave", "2025-08-25", "2026-01-31")],
+        }
+        result = self._project(course, instructor_blocked=instructor_blocked,
+                               lookahead_months=3)
+        self.assertIn("2025-09-01", result.unresolvable)
+        self.assertEqual(result.rescheduled, [])
+
+
+# ── project_lesson_with_accommodation ────────────────────────────────────────
+
+class TestProjectLessonWithAccommodation(unittest.TestCase):
+    """project_lesson_with_accommodation() — standalone lesson substitution."""
+
+    def _project(self, lesson, window=None, instructor_blocked=None,
+                 room_blocked=None, student_blocked=None,
+                 alt_instructors=None, alt_rooms=None):
+        from backend.app.domain.services.schedule_projection import (
+            project_lesson_with_accommodation,
+        )
+        return project_lesson_with_accommodation(
+            lesson=lesson,
+            window=window or _window(),
+            instructor_blocked=instructor_blocked or {},
+            room_blocked=room_blocked or {},
+            student_blocked=student_blocked or [],
+            alternative_instructor_ids=alt_instructors or [],
+            alternative_room_ids=alt_rooms or [],
+        )
+
+    def test_no_recurrence_returns_empty(self):
+        lesson = _lesson(rule_type=None)
+        result = self._project(lesson)
+        from backend.app.domain.services.schedule_projection import ScheduleAccommodationResult
+        self.assertIsInstance(result, ScheduleAccommodationResult)
+        self.assertEqual(result.scheduled, [])
+        self.assertEqual(result.unresolvable, [])
+
+    def test_one_time_no_conflicts_scheduled(self):
+        lesson = _lesson(rule_type="one_time", value="2025-09-15")
+        result = self._project(lesson, window=_window("2025-09-01", "2025-09-30"))
+        self.assertEqual(len(result.scheduled), 1)
+        self.assertEqual(result.unresolvable, [])
+
+    def test_one_time_instructor_blocked_substituted(self):
+        lesson = _lesson(rule_type="one_time", value="2025-09-15")
+        instructor_blocked = {"i1": [_holiday("Away", "2025-09-15")]}
+        result = self._project(lesson, window=_window("2025-09-01", "2025-09-30"),
+                               instructor_blocked=instructor_blocked,
+                               alt_instructors=["i2"])
+        self.assertEqual(len(result.scheduled), 1)
+        self.assertEqual(result.scheduled[0].instructor_id, "i2")
+
+    def test_one_time_room_blocked_substituted(self):
+        lesson = _lesson(rule_type="one_time", value="2025-09-15")
+        room_blocked = {"r1": [_holiday("Maintenance", "2025-09-15")]}
+        result = self._project(lesson, window=_window("2025-09-01", "2025-09-30"),
+                               room_blocked=room_blocked, alt_rooms=["r2"])
+        self.assertEqual(len(result.scheduled), 1)
+        self.assertEqual(result.scheduled[0].room_id, "r2")
+
+    def test_cron_weekly_substitutes_blocked_week(self):
+        lesson = _lesson(rule_type="cron", value="0 0 * * MON")
+        instructor_blocked = {"i1": [_holiday("Away", "2025-09-08")]}
+        result = self._project(lesson, instructor_blocked=instructor_blocked,
+                               alt_instructors=["i2"])
+        self.assertEqual(len(result.scheduled), 4)
+        sep8 = next(o for o in result.scheduled if o.date == "2025-09-08")
+        self.assertEqual(sep8.instructor_id, "i2")
+
+    def test_student_blocked_unresolvable(self):
+        lesson = _lesson(rule_type="one_time", value="2025-09-15")
+        student_blocked = [_holiday("Sick", "2025-09-15")]
+        result = self._project(lesson, window=_window("2025-09-01", "2025-09-30"),
+                               student_blocked=student_blocked,
+                               alt_instructors=["i2"], alt_rooms=["r2"])
+        self.assertEqual(result.scheduled, [])
+        self.assertIn("2025-09-15", result.unresolvable)
+
+
 if __name__ == "__main__":
     unittest.main()

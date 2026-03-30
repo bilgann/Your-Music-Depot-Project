@@ -69,6 +69,14 @@ def project_lesson_schedule(lesson_id: str) -> list:
 
     blocked: list[BlockedTime] = []
 
+    # School-wide blocked times (holidays, vacations) — filtered by overrides.
+    from backend.app.application.services.school_schedule import collect_school_blocked_times
+    blocked.extend(collect_school_blocked_times([
+        ("lesson", lesson.lesson_id),
+        ("instructor", lesson.instructor_id),
+        ("room", lesson.room_id),
+    ]))
+
     irows = Instructor.get(lesson.instructor_id)
     if irows:
         entity = InstructorEntity.from_dict(irows[0])

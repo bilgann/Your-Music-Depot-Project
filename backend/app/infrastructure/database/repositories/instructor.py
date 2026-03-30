@@ -7,7 +7,7 @@ from backend.app.infrastructure.database.database import DatabaseConnection
 class Instructor:
     @staticmethod
     def get_all():
-        return DatabaseConnection().client.table("instructor").select("*").execute().data
+        return DatabaseConnection().client.table("instructor").select("*, person(*)").execute().data
 
     @staticmethod
     def list(page: int = 1, page_size: int = 20, search: str = None):
@@ -23,7 +23,7 @@ class Instructor:
         return (
             DatabaseConnection().client
             .table("instructor")
-            .select("*")
+            .select("*, person(*)")
             .eq("instructor_id", instructor_id)
             .execute()
             .data

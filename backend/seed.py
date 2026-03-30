@@ -194,7 +194,7 @@ def batch_insert(table: str, rows: list, label: str = ""):
             db.table(table).insert(chunk).execute()
         except Exception as exc:
             print(f"  ! {tag} batch {idx + 1}/{batches}: {exc}")
-    print(f"  ✓ {tag}: {len(rows):,} rows")
+    print(f"  OK {tag}: {len(rows):,} rows")
 
 
 # ── Clear ─────────────────────────────────────────────────────────────────────
