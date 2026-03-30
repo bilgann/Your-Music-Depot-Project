@@ -20,3 +20,16 @@ export async function logout(token: string): Promise<void> {
         headers: { Authorization: `Bearer ${token}` },
     });
 }
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const res = await fetch(`${config.API_BASE}/user/password`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    });
+    return res.json();
+}

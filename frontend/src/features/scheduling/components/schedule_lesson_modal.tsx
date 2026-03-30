@@ -5,6 +5,7 @@ import { Lesson, Instructor, Room } from '../../../types/index'
 import { createLesson, updateLesson } from '../api/lesson'
 import { apiJson } from '@/lib/api'
 import Button from '@/components/ui/button'
+import { useToast } from '@/components/ui/toast'
 
 interface ScheduleLessonModalProps {
   existingLesson?: Lesson
@@ -13,6 +14,7 @@ interface ScheduleLessonModalProps {
 }
 
 const ScheduleLessonModal: React.FC<ScheduleLessonModalProps> = ({ existingLesson, onSaved, onClose }) => {
+  const { toast } = useToast()
   const [instructors, setInstructors] = useState<Instructor[]>([])
   const [rooms, setRooms] = useState<Room[]>([])
 
@@ -51,7 +53,7 @@ const ScheduleLessonModal: React.FC<ScheduleLessonModalProps> = ({ existingLesso
       onClose()
     } catch (error) {
       console.error('Error saving lesson:', error)
-      alert('Failed to save lesson')
+      toast('Failed to save lesson', 'error')
     }
   }
 

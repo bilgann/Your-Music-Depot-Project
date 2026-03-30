@@ -30,8 +30,10 @@ export interface DropdownOption {
 
 export type Lesson = {
   lesson_id: string
+    course_id?: string | null
   instructor_id: string
   student_id?: string | null
+    student_ids?: string[]
   room_id: string
   start_time: string
   end_time: string

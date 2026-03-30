@@ -45,3 +45,25 @@ class User:
             return UserEntity("00000000-0000-0000-0000-000000000000", username, role="admin")
 
         return None
+
+    @staticmethod
+    def change_password(user_id: str, current_password: str, new_password: str) -> bool:
+        """Verify current password and update to new password hash. Returns True on success."""
+        current_hash = hashlib.sha256(current_password.encode()).hexdigest()
+        new_hash = hashlib.sha256(new_password.encode()).hexdigest()
+        rows = (
+            DatabaseConnection()
+            .client
+            .table("app_user")
+            .select("user_id")
+            .eq("user_id", user_id)
+            .eq("password_hash", current_hash)
+            .execute()
+            .data
+        )
+        if not (isinstance(rows, list) and rows):
+            return False
+        DatabaseConnection().client.table("app_user").update(
+            {"password_hash": new_hash}
+        ).eq("user_id", user_id).execute()
+        return True

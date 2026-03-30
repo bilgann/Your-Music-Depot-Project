@@ -1,11 +1,13 @@
 'use client'
 
 import React, { useEffect, useState, useMemo, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { faPencil, faTrash, faCheck, faXmark, faChevronLeft, faChevronRight, faPlus } from '@fortawesome/free-solid-svg-icons'
 import { Lesson } from '../../../types/index'
 import { getLessons, deleteLesson } from '../api/lesson'
 import Button from '@/components/ui/button'
 import ScheduleLessonModal from './schedule_lesson_modal'
+import { useToast } from '@/components/ui/toast'
 
 type CalendarView = 'month' | 'week' | 'day'
 
@@ -84,6 +86,8 @@ interface LessonCalendarProps {
 }
 
 const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonCreated }) => {
+  const { toast } = useToast()
+  const router = useRouter()
   const [view, setView] = useState<CalendarView>('week')
   const [cursor, setCursor] = useState<Date>(startOfWeek(new Date()))
   const [lessons, setLessons] = useState<Lesson[]>([])
@@ -255,7 +259,7 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
       if (onLessonCreated) onLessonCreated()
     } catch (error) {
       console.error('[LessonCalendar] Delete error:', error)
-      alert('Failed to delete lesson')
+      toast('Failed to delete lesson', 'error')
     }
   }
 
@@ -323,6 +327,9 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
         className={`ac-event ac-event-${dayIdx}`}
         style={style}
         title={`${lesson.status ?? 'Lesson'} — ${timeLabel}`}
+        onClick={() => {
+          if (!calendarEditMode) router.push(`/scheduling/${lesson.lesson_id}`)
+        }}
       >
         {calendarEditMode && (
           <div className="event-btns-wrapper" style={{ position: 'absolute', top: 6, right: 6, zIndex: 60 }} onClick={(e) => e.stopPropagation()}>
@@ -457,6 +464,7 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
                         className="month-chip"
                         style={{ background: bg, color: textColor }}
                         title={`${lesson.status ?? 'Lesson'} ${timeStr}`}
+                        onClick={() => router.push(`/scheduling/${lesson.lesson_id}`)}
                       >
                         {timeStr} {lesson.status ?? 'Lesson'}
                       </div>

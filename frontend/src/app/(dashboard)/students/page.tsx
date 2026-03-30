@@ -5,8 +5,9 @@ import Navbar from "@/components/ui/navbar";
 import DataTable from "@/components/ui/data_table";
 import Modal from "@/components/ui/modal";
 import Button from "@/components/ui/button";
-import { TextField } from "@/components/ui/fields";
+import { NumberField, TextField } from "@/components/ui/fields";
 import { Combobox } from "@/components/ui/combobox";
+import TeachingRequirementsBuilder from "@/features/students/components/teaching_requirements_builder";
 import { useStudents } from "@/features/students/hooks/use_students";
 import { useStudentCrud } from "@/features/students/hooks/use_student_crud";
 import { searchClients } from "@/features/clients/api/client";
@@ -44,6 +45,7 @@ export default function StudentsPage() {
                     <TextField label="Name"  value={form.name}  onChange={(v) => setForm({ ...form, name: v })}  required />
                     <TextField label="Email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} type="email" />
                     <TextField label="Phone" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
+                    <NumberField label="Age" value={form.age} onChange={(v) => setForm({ ...form, age: v })} min={0} />
                     <Combobox
                         label="Client"
                         value={form.client_id}
@@ -52,6 +54,7 @@ export default function StudentsPage() {
                         fetchOptions={searchClients}
                         required
                     />
+                    <TeachingRequirementsBuilder value={form.requirements} onChange={(requirements) => setForm({ ...form, requirements })} />
                 </Modal>
             )}
         </>

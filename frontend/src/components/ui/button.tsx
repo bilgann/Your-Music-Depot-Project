@@ -71,7 +71,7 @@ export default function Button({
     );
 
     if (href) {
-        return <Link href={href} className={cls} title={title}>{content}</Link>;
+        return <Link href={href} className={cls} title={title} onClick={onClick}>{content}</Link>;
     }
 
     return (
