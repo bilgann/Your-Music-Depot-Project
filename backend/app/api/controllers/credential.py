@@ -45,7 +45,7 @@ def create_credential():
         body = request.get_json()
         validate(body, "credential")
         result = svc.create_credential(body)
-        audit.log(g.user.id, "CREATE", "credential",
+        audit.log(g.user.user_id, "CREATE", "credential",
                   result[0].get("credential_id") if result else None, None, body)
         return jsonify(ResponseContract(True, "Credential created.", result).to_dict()), 201
     except Exception as e:
@@ -59,7 +59,7 @@ def update_credential(credential_id):
         body = request.get_json()
         validate(body, "credential", partial=True)
         result = svc.update_credential(credential_id, body)
-        audit.log(g.user.id, "UPDATE", "credential", credential_id, None, body)
+        audit.log(g.user.user_id, "UPDATE", "credential", credential_id, None, body)
         return jsonify(ResponseContract(True, "Credential updated.", result).to_dict()), 200
     except Exception as e:
         return error_response(e)
@@ -70,7 +70,7 @@ def update_credential(credential_id):
 def delete_credential(credential_id):
     try:
         svc.delete_credential(credential_id)
-        audit.log(g.user.id, "DELETE", "credential", credential_id)
+        audit.log(g.user.user_id, "DELETE", "credential", credential_id)
         return jsonify(ResponseContract(True, "Credential deleted.").to_dict()), 200
     except Exception as e:
         return error_response(e)

@@ -3,6 +3,7 @@ from flask import Blueprint, g, request, jsonify
 from backend.app.api.middleware.auth import require_admin, require_auth
 from backend.app.api.contracts.response import ResponseContract
 from backend.app.api.contracts.validation import error_response, validate
+from backend.app.domain.exceptions.exceptions import ValidationError
 import backend.app.application.services.lesson as svc
 import backend.app.application.services.audit as audit
 
@@ -46,7 +47,7 @@ def create_lesson():
         body = request.get_json()
         validate(body, "lesson")
         result = svc.create_lesson(body)
-        audit.log(g.user.id, "CREATE", "lesson",
+        audit.log(g.user.user_id, "CREATE", "lesson",
                   result[0].get("lesson_id") if result else None, None, body)
         return jsonify(ResponseContract(True, "Lesson created.", result).to_dict()), 201
     except Exception as e:
@@ -60,7 +61,7 @@ def update_lesson(lesson_id):
         body = request.get_json()
         validate(body, "lesson", partial=True)
         result = svc.update_lesson(lesson_id, body)
-        audit.log(g.user.id, "UPDATE", "lesson", lesson_id, None, body)
+        audit.log(g.user.user_id, "UPDATE", "lesson", lesson_id, None, body)
         return jsonify(ResponseContract(True, "Lesson updated.", result).to_dict()), 200
     except Exception as e:
         return error_response(e)
@@ -71,7 +72,7 @@ def update_lesson(lesson_id):
 def delete_lesson(lesson_id):
     try:
         svc.delete_lesson(lesson_id)
-        audit.log(g.user.id, "DELETE", "lesson", lesson_id)
+        audit.log(g.user.user_id, "DELETE", "lesson", lesson_id)
         return jsonify(ResponseContract(True, "Lesson deleted.").to_dict()), 200
     except Exception as e:
         return error_response(e)
@@ -89,7 +90,7 @@ def project_schedule(lesson_id):
     """
     try:
         result = svc.project_lesson_schedule(lesson_id)
-        audit.log(g.user.id, "CREATE", "lesson_occurrence", lesson_id, None,
+        audit.log(g.user.user_id, "CREATE", "lesson_occurrence", lesson_id, None,
                   {"projected": len(result)})
         return jsonify(ResponseContract(
             True, f"Projected {len(result)} occurrence(s).", result
@@ -117,7 +118,7 @@ def enroll_student(occurrence_id):
         body = request.get_json()
         validate(body, "lesson_enrollment")
         result = svc.enroll_student_in_occurrence(occurrence_id, body["student_id"])
-        audit.log(g.user.id, "CREATE", "lesson_enrollment", occurrence_id, None,
+        audit.log(g.user.user_id, "CREATE", "lesson_enrollment", occurrence_id, None,
                   {"student_id": body["student_id"]})
         return jsonify(ResponseContract(True, "Student enrolled.", result).to_dict()), 201
     except Exception as e:
@@ -133,13 +134,12 @@ def record_attendance(occurrence_id, student_id):
         status = body.get("attendance_status")
         valid  = {"Present", "Absent", "Cancelled", "Late Cancel", "Excused"}
         if status not in valid:
-            from backend.app.domain.exceptions.exceptions import ValidationError
             raise ValidationError([{
                 "field": "attendance_status",
                 "message": f"Must be one of: {', '.join(sorted(valid))}.",
             }])
         result = svc.record_attendance(occurrence_id, student_id, status)
-        audit.log(g.user.id, "UPDATE", "lesson_enrollment", occurrence_id, None,
+        audit.log(g.user.user_id, "UPDATE", "lesson_enrollment", occurrence_id, None,
                   {"student_id": student_id, "attendance_status": status})
         return jsonify(ResponseContract(True, "Attendance recorded.", result).to_dict()), 200
     except Exception as e:
@@ -151,7 +151,7 @@ def record_attendance(occurrence_id, student_id):
 def unenroll_student(occurrence_id, student_id):
     try:
         svc.unenroll_student_from_occurrence(occurrence_id, student_id)
-        audit.log(g.user.id, "DELETE", "lesson_enrollment", occurrence_id, None,
+        audit.log(g.user.user_id, "DELETE", "lesson_enrollment", occurrence_id, None,
                   {"student_id": student_id})
         return jsonify(ResponseContract(True, "Student unenrolled.").to_dict()), 200
     except Exception as e:

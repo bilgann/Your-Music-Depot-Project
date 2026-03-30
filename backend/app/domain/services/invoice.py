@@ -108,8 +108,8 @@ def build_line_items(
         charge = calculate_lesson_charge(lesson, default_policy)
         label  = attendance_label(lesson.get("attendance_status"))
         line_items.append({
-            "lesson_id":         lesson["lesson_id"],
-            "description":       f"{label} \u2014 {lesson['start_time'][:10]}",
+            "occurrence_id":     lesson["occurrence_id"],
+            "description":       f"{label} \u2014 {lesson['date']}",
             "amount":            charge,
             "attendance_status": lesson.get("attendance_status"),
         })

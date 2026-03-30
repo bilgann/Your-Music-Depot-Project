@@ -19,8 +19,8 @@ _SCHEMAS: dict = {
         "types": {"name": str, "email": str, "phone": str, "person_id": str},
     },
     "instructor": {
-        "required": ["name"],
-        "types": {"name": str, "email": str, "phone": str},
+        "required": ["person_id"],
+        "types": {"person_id": str, "hourly_rate": (int, float)},
     },
     "student": {
         "required": [],
@@ -53,7 +53,7 @@ _SCHEMAS: dict = {
         "required": ["description", "amount"],
         "types": {
             "item_type": str, "description": str,
-            "amount": (int, float), "lesson_id": str,
+            "amount": (int, float), "occurrence_id": str,
         },
     },
     "payment": {

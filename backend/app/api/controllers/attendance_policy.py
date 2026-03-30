@@ -66,7 +66,7 @@ def create_policy():
             from backend.app.domain.exceptions.exceptions import ValidationError
             raise ValidationError([{"field": "name", "message": "name is required."}])
         result = svc.create_policy(body)
-        audit.log(g.user.id, "CREATE", "attendance_policy",
+        audit.log(g.user.user_id, "CREATE", "attendance_policy",
                   result[0].get("policy_id") if result else None, None, body)
         return jsonify(ResponseContract(True, "Policy created.", result).to_dict()), 201
     except Exception as e:
@@ -79,7 +79,7 @@ def update_policy(policy_id):
     try:
         body = request.get_json() or {}
         result = svc.update_policy(policy_id, body)
-        audit.log(g.user.id, "UPDATE", "attendance_policy", policy_id, None, body)
+        audit.log(g.user.user_id, "UPDATE", "attendance_policy", policy_id, None, body)
         return jsonify(ResponseContract(True, "Policy updated.", result).to_dict()), 200
     except Exception as e:
         return error_response(e)
@@ -90,7 +90,7 @@ def update_policy(policy_id):
 def delete_policy(policy_id):
     try:
         svc.delete_policy(policy_id)
-        audit.log(g.user.id, "DELETE", "attendance_policy", policy_id)
+        audit.log(g.user.user_id, "DELETE", "attendance_policy", policy_id)
         return jsonify(ResponseContract(True, "Policy deleted.").to_dict()), 200
     except Exception as e:
         return error_response(e)

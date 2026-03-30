@@ -27,7 +27,7 @@ def generate_invoice():
         if errors:
             raise ValidationError(errors)
         result = svc.generate_monthly_invoice(body["student_id"], int(body["year"]), int(body["month"]))
-        audit.log(g.user.id, "CREATE", "invoice",
+        audit.log(g.user.user_id, "CREATE", "invoice",
                   result["invoice"].get("invoice_id"), None,
                   {"student_id": body["student_id"], "year": body["year"], "month": body["month"]})
         return jsonify(ResponseContract(True, "Invoice generated.", result).to_dict()), 201
@@ -91,7 +91,7 @@ def add_line_item(invoice_id):
         body = request.get_json()
         validate(body, "invoice_item")
         result = svc.add_invoice_item(invoice_id, body)
-        audit.log(g.user.id, "CREATE", "invoice_line", invoice_id, None, body)
+        audit.log(g.user.user_id, "CREATE", "invoice_line", invoice_id, None, body)
         return jsonify(ResponseContract(True, "Line item added.", result).to_dict()), 201
     except Exception as e:
         return error_response(e)
@@ -104,7 +104,7 @@ def create_invoice():
         body = request.get_json()
         validate(body, "invoice")
         result = svc.create_invoice(body)
-        audit.log(g.user.id, "CREATE", "invoice",
+        audit.log(g.user.user_id, "CREATE", "invoice",
                   result[0].get("invoice_id") if result else None, None, body)
         return jsonify(ResponseContract(True, "Invoice created.", result).to_dict()), 201
     except Exception as e:
@@ -118,7 +118,7 @@ def update_invoice(invoice_id):
         body = request.get_json()
         validate(body, "invoice", partial=True)
         result = svc.update_invoice(invoice_id, body)
-        audit.log(g.user.id, "UPDATE", "invoice", invoice_id, None, body)
+        audit.log(g.user.user_id, "UPDATE", "invoice", invoice_id, None, body)
         return jsonify(ResponseContract(True, "Invoice updated.", result).to_dict()), 200
     except Exception as e:
         return error_response(e)
@@ -129,7 +129,7 @@ def update_invoice(invoice_id):
 def delete_invoice(invoice_id):
     try:
         svc.delete_invoice(invoice_id)
-        audit.log(g.user.id, "DELETE", "invoice", invoice_id)
+        audit.log(g.user.user_id, "DELETE", "invoice", invoice_id)
         return jsonify(ResponseContract(True, "Invoice deleted.").to_dict()), 200
     except Exception as e:
         return error_response(e)

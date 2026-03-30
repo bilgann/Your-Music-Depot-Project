@@ -1,6 +1,6 @@
 from flask import Blueprint, g, request, jsonify
 
-from backend.app.api.middleware.auth import require_auth
+from backend.app.api.middleware.auth import require_admin, require_auth
 from backend.app.api.contracts.response import ResponseContract
 from backend.app.api.contracts.validation import error_response, validate
 import backend.app.application.services.instructor as svc
@@ -35,13 +35,13 @@ def get_instructor(instructor_id):
 
 
 @instructor_bp.route("", methods=["POST"])
-@require_auth
+@require_admin
 def create_instructor():
     try:
         body = request.get_json()
         validate(body, "instructor")
         result = svc.create_instructor(body)
-        audit.log(g.user.id, "CREATE", "instructor",
+        audit.log(g.user.user_id, "CREATE", "instructor",
                   result[0].get("instructor_id") if result else None, None, body)
         return jsonify(ResponseContract(True, "Instructor created.", result).to_dict()), 201
     except Exception as e:
@@ -49,24 +49,24 @@ def create_instructor():
 
 
 @instructor_bp.route("/<instructor_id>", methods=["PUT"])
-@require_auth
+@require_admin
 def update_instructor(instructor_id):
     try:
         body = request.get_json()
         validate(body, "instructor", partial=True)
         result = svc.update_instructor(instructor_id, body)
-        audit.log(g.user.id, "UPDATE", "instructor", instructor_id, None, body)
+        audit.log(g.user.user_id, "UPDATE", "instructor", instructor_id, None, body)
         return jsonify(ResponseContract(True, "Instructor updated.", result).to_dict()), 200
     except Exception as e:
         return error_response(e)
 
 
 @instructor_bp.route("/<instructor_id>", methods=["DELETE"])
-@require_auth
+@require_admin
 def delete_instructor(instructor_id):
     try:
         svc.delete_instructor(instructor_id)
-        audit.log(g.user.id, "DELETE", "instructor", instructor_id)
+        audit.log(g.user.user_id, "DELETE", "instructor", instructor_id)
         return jsonify(ResponseContract(True, "Instructor deleted.").to_dict()), 200
     except Exception as e:
         return error_response(e)

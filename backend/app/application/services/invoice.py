@@ -85,7 +85,7 @@ def generate_monthly_invoice(student_id, year: int, month: int) -> dict:
         {
             "invoice_id":        invoice_id,
             "item_type":         item.get("item_type", "lesson"),
-            "lesson_id":         item.get("lesson_id"),
+            "occurrence_id":     item.get("occurrence_id"),
             "description":       item["description"],
             "amount":            item["amount"],
             "attendance_status": item.get("attendance_status"),
@@ -114,11 +114,11 @@ def add_invoice_item(invoice_id: str, data: dict) -> dict:
         raise NotFoundError("Invoice not found.")
 
     item_row = Invoice.create_line_items([{
-        "invoice_id":  invoice_id,
-        "item_type":   data.get("item_type", "other"),
-        "description": data["description"],
-        "amount":      data["amount"],
-        "lesson_id":   data.get("lesson_id"),
+        "invoice_id":   invoice_id,
+        "item_type":    data.get("item_type", "other"),
+        "description":  data["description"],
+        "amount":       data["amount"],
+        "occurrence_id": data.get("occurrence_id"),
     }])
 
     # Recompute total from all items and persist the denormalised column.

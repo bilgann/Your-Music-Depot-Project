@@ -37,7 +37,7 @@ def create_person():
         body = request.get_json()
         validate(body, "person")
         result = svc.create_person(body)
-        audit.log(g.user.id, "CREATE", "person",
+        audit.log(g.user.user_id, "CREATE", "person",
                   result[0].get("person_id") if result else None, None, body)
         return jsonify(ResponseContract(True, "Person created.", result).to_dict()), 201
     except Exception as e:
@@ -51,7 +51,7 @@ def update_person(person_id):
         body = request.get_json()
         validate(body, "person", partial=True)
         result = svc.update_person(person_id, body)
-        audit.log(g.user.id, "UPDATE", "person", person_id, None, body)
+        audit.log(g.user.user_id, "UPDATE", "person", person_id, None, body)
         return jsonify(ResponseContract(True, "Person updated.", result).to_dict()), 200
     except Exception as e:
         return error_response(e)
@@ -62,7 +62,7 @@ def update_person(person_id):
 def delete_person(person_id):
     try:
         svc.delete_person(person_id)
-        audit.log(g.user.id, "DELETE", "person", person_id)
+        audit.log(g.user.user_id, "DELETE", "person", person_id)
         return jsonify(ResponseContract(True, "Person deleted.").to_dict()), 200
     except Exception as e:
         return error_response(e)

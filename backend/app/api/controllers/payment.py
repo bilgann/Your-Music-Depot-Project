@@ -41,7 +41,7 @@ def record_payment():
         body = request.get_json()
         validate(body, "payment")
         data = svc.record_payment(body)
-        audit.log(g.user.id, "CREATE", "payment",
+        audit.log(g.user.user_id, "CREATE", "payment",
                   data.get("payment_id"), None, body)
         return jsonify(ResponseContract(True, "Payment recorded.", data).to_dict()), 201
     except Exception as e:
@@ -53,7 +53,7 @@ def record_payment():
 def delete_payment(payment_id):
     try:
         svc.delete_payment(payment_id)
-        audit.log(g.user.id, "DELETE", "payment", payment_id)
+        audit.log(g.user.user_id, "DELETE", "payment", payment_id)
         return jsonify(ResponseContract(True, "Payment deleted.").to_dict()), 200
     except Exception as e:
         return error_response(e)

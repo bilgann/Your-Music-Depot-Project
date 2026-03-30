@@ -53,7 +53,7 @@ def set_compatibility():
         body = request.get_json()
         validate(body, "compatibility")
         result = svc.set_compatibility(body)
-        audit.log(g.user.id, "UPSERT", "instructor_student_compatibility", None, None, body)
+        audit.log(g.user.user_id, "UPSERT", "instructor_student_compatibility", None, None, body)
         return jsonify(ResponseContract(True, "Compatibility override saved.", result).to_dict()), 200
     except Exception as e:
         return error_response(e)
@@ -64,7 +64,7 @@ def set_compatibility():
 def delete_compatibility(compatibility_id):
     try:
         svc.delete_compatibility(compatibility_id)
-        audit.log(g.user.id, "DELETE", "instructor_student_compatibility", compatibility_id)
+        audit.log(g.user.user_id, "DELETE", "instructor_student_compatibility", compatibility_id)
         return jsonify(ResponseContract(True, "Compatibility override deleted.").to_dict()), 200
     except Exception as e:
         return error_response(e)

@@ -1,3 +1,4 @@
+from backend.app.domain.exceptions.exceptions import NotFoundError
 from backend.app.infrastructure.database.repositories import Instructor
 
 
@@ -18,8 +19,12 @@ def create_instructor(data):
 
 
 def update_instructor(instructor_id, data):
+    if not Instructor.get(instructor_id):
+        raise NotFoundError("Instructor not found.")
     return Instructor.update(instructor_id, data)
 
 
 def delete_instructor(instructor_id):
+    if not Instructor.get(instructor_id):
+        raise NotFoundError("Instructor not found.")
     return Instructor.delete(instructor_id)

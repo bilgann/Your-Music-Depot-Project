@@ -49,7 +49,7 @@ def pay_via_client(client_id):
             raise ValidationError([{"field": "amount", "message": "amount must be greater than 0."}])
         payment_method = body.get("payment_method", "Card")
         result = payment_svc.pay_via_client(client_id, float(amount), payment_method)
-        audit.log(g.user.id, "CREATE", "payment", client_id, None,
+        audit.log(g.user.user_id, "CREATE", "payment", client_id, None,
                   {"amount": amount, "payment_method": payment_method})
         return jsonify(ResponseContract(True, "Payment applied.", result).to_dict()), 201
     except Exception as e:
@@ -111,7 +111,7 @@ def create_client():
         body = request.get_json()
         validate(body, "client")
         result = svc.create_client(body)
-        audit.log(g.user.id, "CREATE", "client",
+        audit.log(g.user.user_id, "CREATE", "client",
                   result[0].get("client_id") if result else None, None, body)
         return jsonify(ResponseContract(True, "Client created.", result).to_dict()), 201
     except Exception as e:
@@ -125,7 +125,7 @@ def update_client(client_id):
         body = request.get_json()
         validate(body, "client", partial=True)
         result = svc.update_client(client_id, body)
-        audit.log(g.user.id, "UPDATE", "client", client_id, None, body)
+        audit.log(g.user.user_id, "UPDATE", "client", client_id, None, body)
         return jsonify(ResponseContract(True, "Client updated.", result).to_dict()), 200
     except Exception as e:
         return error_response(e)
@@ -136,7 +136,7 @@ def update_client(client_id):
 def delete_client(client_id):
     try:
         svc.delete_client(client_id)
-        audit.log(g.user.id, "DELETE", "client", client_id)
+        audit.log(g.user.user_id, "DELETE", "client", client_id)
         return jsonify(ResponseContract(True, "Client deleted.").to_dict()), 200
     except Exception as e:
         return error_response(e)

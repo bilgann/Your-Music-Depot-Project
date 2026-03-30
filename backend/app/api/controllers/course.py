@@ -45,7 +45,7 @@ def create_course():
         body = request.get_json()
         validate(body, "course")
         result = svc.create_course(body)
-        audit.log(g.user.id, "CREATE", "course",
+        audit.log(g.user.user_id, "CREATE", "course",
                   result[0].get("course_id") if result else None, None, body)
         return jsonify(ResponseContract(True, "Course created.", result).to_dict()), 201
     except Exception as e:
@@ -59,7 +59,7 @@ def update_course(course_id):
         body = request.get_json()
         validate(body, "course", partial=True)
         result = svc.update_course(course_id, body)
-        audit.log(g.user.id, "UPDATE", "course", course_id, None, body)
+        audit.log(g.user.user_id, "UPDATE", "course", course_id, None, body)
         return jsonify(ResponseContract(True, "Course updated.", result).to_dict()), 200
     except Exception as e:
         return error_response(e)
@@ -70,7 +70,7 @@ def update_course(course_id):
 def delete_course(course_id):
     try:
         svc.delete_course(course_id)
-        audit.log(g.user.id, "DELETE", "course", course_id)
+        audit.log(g.user.user_id, "DELETE", "course", course_id)
         return jsonify(ResponseContract(True, "Course deleted.").to_dict()), 200
     except Exception as e:
         return error_response(e)
@@ -85,7 +85,7 @@ def enroll_student(course_id):
         body = request.get_json()
         validate(body, "course_enrollment")
         result = svc.enroll_student(course_id, body["student_id"])
-        audit.log(g.user.id, "CREATE", "course_enrollment", course_id, None,
+        audit.log(g.user.user_id, "CREATE", "course_enrollment", course_id, None,
                   {"student_id": body["student_id"]})
         return jsonify(ResponseContract(True, "Student enrolled in course.", result).to_dict()), 201
     except Exception as e:
@@ -97,7 +97,7 @@ def enroll_student(course_id):
 def unenroll_student(course_id, student_id):
     try:
         result = svc.unenroll_student(course_id, student_id)
-        audit.log(g.user.id, "DELETE", "course_enrollment", course_id, None,
+        audit.log(g.user.user_id, "DELETE", "course_enrollment", course_id, None,
                   {"student_id": student_id})
         return jsonify(ResponseContract(True, "Student unenrolled from course.", result).to_dict()), 200
     except Exception as e:
@@ -111,7 +111,7 @@ def add_instructor(course_id):
         body = request.get_json()
         validate(body, "course_instructor")
         result = svc.add_instructor(course_id, body["instructor_id"])
-        audit.log(g.user.id, "UPDATE", "course", course_id, None,
+        audit.log(g.user.user_id, "UPDATE", "course", course_id, None,
                   {"added_instructor": body["instructor_id"]})
         return jsonify(ResponseContract(True, "Instructor added to course.", result).to_dict()), 200
     except Exception as e:
@@ -123,7 +123,7 @@ def add_instructor(course_id):
 def remove_instructor(course_id, instructor_id):
     try:
         result = svc.remove_instructor(course_id, instructor_id)
-        audit.log(g.user.id, "UPDATE", "course", course_id, None,
+        audit.log(g.user.user_id, "UPDATE", "course", course_id, None,
                   {"removed_instructor": instructor_id})
         return jsonify(ResponseContract(True, "Instructor removed from course.", result).to_dict()), 200
     except Exception as e:
@@ -142,7 +142,7 @@ def project_schedule(course_id):
     """
     try:
         result = svc.project_course_schedule(course_id)
-        audit.log(g.user.id, "CREATE", "lesson_occurrence", course_id, None,
+        audit.log(g.user.user_id, "CREATE", "lesson_occurrence", course_id, None,
                   {"projected": len(result)})
         return jsonify(ResponseContract(
             True, f"Projected {len(result)} occurrence(s).", result

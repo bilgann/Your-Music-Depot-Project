@@ -36,7 +36,7 @@ class InvoiceItem:
     item_type:         str            # one of VALID_ITEM_TYPES
     description:       str
     amount:            Money
-    lesson_id:         Optional[str] = None   # set only for item_type="lesson"
+    occurrence_id:     Optional[str] = None   # set only for item_type="lesson"
     attendance_status: Optional[str] = None   # set only for item_type="lesson"
 
     def __post_init__(self) -> None:
@@ -45,9 +45,9 @@ class InvoiceItem:
                 f"item_type must be one of {sorted(VALID_ITEM_TYPES)}, "
                 f"got {self.item_type!r}"
             )
-        if self.item_type != "lesson" and self.lesson_id is not None:
+        if self.item_type != "lesson" and self.occurrence_id is not None:
             raise ValueError(
-                "lesson_id must be None for non-lesson invoice items."
+                "occurrence_id must be None for non-lesson invoice items."
             )
 
     # ── Factories ─────────────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ class InvoiceItem:
     @classmethod
     def for_lesson(
         cls,
-        lesson_id: str,
+        occurrence_id: str,
         description: str,
         amount: Money,
         attendance_status: Optional[str] = None,
@@ -64,7 +64,7 @@ class InvoiceItem:
             item_type="lesson",
             description=description,
             amount=amount,
-            lesson_id=lesson_id,
+            occurrence_id=occurrence_id,
             attendance_status=attendance_status,
         )
 
@@ -88,7 +88,7 @@ class InvoiceItem:
             item_type=d.get("item_type", "lesson"),
             description=d["description"],
             amount=Money.of(d["amount"]),
-            lesson_id=d.get("lesson_id"),
+            occurrence_id=d.get("occurrence_id"),
             attendance_status=d.get("attendance_status"),
         )
 
@@ -97,6 +97,6 @@ class InvoiceItem:
             "item_type":         self.item_type,
             "description":       self.description,
             "amount":            self.amount.amount,
-            "lesson_id":         self.lesson_id,
+            "occurrence_id":     self.occurrence_id,
             "attendance_status": self.attendance_status,
         }

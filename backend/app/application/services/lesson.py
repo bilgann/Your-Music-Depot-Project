@@ -87,9 +87,9 @@ def project_lesson_schedule(lesson_id: str) -> list:
                 entity = ClientEntity.from_dict(crows[0])
                 blocked.extend(entity.blocked_times)
 
-    # Use lesson start/end dates as the projection window.
-    start_date = rows[0].get("start_time", "")[:10]
-    end_date   = rows[0].get("end_time",   "")[:10]
+    # Use the lesson's period dates as the projection window.
+    start_date = rows[0].get("period_start", "")
+    end_date   = rows[0].get("period_end",   "")
     window = DateRange(period_start=start_date, period_end=end_date)
 
     # Re-project: delete existing first.

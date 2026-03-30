@@ -15,7 +15,7 @@ Requires: croniter  (pip install croniter)
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from croniter import croniter
 
@@ -103,11 +103,11 @@ def _expand_recurrence(rule_type: str, value: str, window: DateRange) -> list[st
         return [value] if start <= d <= end else []
 
     # cron — iterate from one day before start so the first occurrence isn't missed
-    anchor = start - timedelta(days=1)
+    anchor = datetime(*(start - timedelta(days=1)).timetuple()[:3])
     cron   = croniter(value, anchor)
     dates: list[str] = []
     while True:
-        next_date = cron.get_next(date)
+        next_date = cron.get_next(datetime).date()
         if next_date > end:
             break
         if next_date >= start:
@@ -131,9 +131,9 @@ def _is_blocked(iso_date: str, blocked_times: list[BlockedTime]) -> bool:
 def _cron_hits_date(expression: str, iso_date: str) -> bool:
     """Return True if the cron expression fires on the given ISO date."""
     target = date.fromisoformat(iso_date)
-    anchor = target - timedelta(days=1)
+    anchor = datetime(*(target - timedelta(days=1)).timetuple()[:3])
     cron   = croniter(expression, anchor)
-    next_hit = cron.get_next(date)
+    next_hit = cron.get_next(datetime).date()
     return next_hit == target
 
 
