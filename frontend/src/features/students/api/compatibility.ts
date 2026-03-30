@@ -49,3 +49,17 @@ export async function removeCompatibilityOverride(compatibilityId: string): Prom
     const res = await apiFetch(`/api/compatibility/${compatibilityId}`, { method: "DELETE" });
     if (!res.ok) throw new Error(`Failed to delete compatibility override: ${res.statusText}`);
 }
+
+export type CompatibleInstructor = {
+    instructor_id: string;
+    hard_verdict: string | null;
+    soft_verdict: string | null;
+    reasons: string[];
+};
+
+export async function getCompatibleInstructors(studentId: string): Promise<CompatibleInstructor[]> {
+    const res = await apiFetch(`/api/compatibility/instructors?student_id=${encodeURIComponent(studentId)}`);
+    if (!res.ok) throw new Error(`Failed to fetch compatible instructors: ${res.statusText}`);
+    const body = await res.json();
+    return body.data ?? [];
+}

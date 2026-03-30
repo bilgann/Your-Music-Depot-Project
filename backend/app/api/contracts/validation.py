@@ -38,7 +38,7 @@ _SCHEMAS: dict = {
         "types": {
             "start_time": str, "end_time": str,
             "rate": (int, float), "recurrence": str,
-            "course_id": str,
+            "course_id": str, "status": str,
         },
     },
     "lesson_enrollment": {
@@ -178,5 +178,7 @@ def error_response(exc: Exception):
         return error_response(mapped)
 
     # Non-domain errors never expose internal details
+    import traceback
+    traceback.print_exc()
     body = ResponseContract(False, "An unexpected error occurred.").to_dict()
     return jsonify(body), 500

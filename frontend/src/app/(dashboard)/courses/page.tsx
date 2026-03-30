@@ -16,7 +16,7 @@ function formatPeriod(course: Course) {
 export default function CoursesPage() {
     const router = useRouter();
     const { courses, instructors, loading, error, refresh, page, setPage, search, setSearch, pageCount } = useCourses();
-    const { showModal, setShowModal, editing, form, setForm, saving, rooms, openAdd, openEdit, handleSubmit, handleDelete, instructors: instructorOptions } = useCourseCrud(refresh);
+    const { showModal, setShowModal, editing, form, setForm, saving, rooms, roomData, openAdd, openEdit, handleSubmit, handleDelete, instructors: instructorOptions } = useCourseCrud(refresh);
 
     function getLeadInstructorName(course: Course) {
         return instructors.find((instructor) => instructor.instructor_id === course.instructor_ids[0])?.name ?? "--";
@@ -56,6 +56,7 @@ export default function CoursesPage() {
                     title={editing ? "Update Course" : "Create Course"}
                     form={form}
                     roomOptions={rooms}
+                    roomData={roomData}
                     instructorOptions={instructorOptions}
                     saving={saving}
                     onClose={() => setShowModal(false)}

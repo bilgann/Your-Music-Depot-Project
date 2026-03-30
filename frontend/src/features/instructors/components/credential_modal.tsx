@@ -67,7 +67,7 @@ export default function CredentialModal({ form, saving, onChange, onClose, onSub
                 <label>Proficiencies</label>
                 <div style={{ display: "grid", gap: 12 }}>
                     {form.proficiencies.map((proficiency, index) => (
-                        <div key={`${proficiency.name}-${index}`} style={{ display: "grid", gap: 12, border: "1px solid var(--border-color, #ddd)", padding: 12, borderRadius: 8 }}>
+                        <div key={index} style={{ display: "grid", gap: 12, border: "1px solid var(--border-color, #ddd)", padding: 12, borderRadius: 8 }}>
                             <TextField
                                 label="Instrument"
                                 value={proficiency.name}

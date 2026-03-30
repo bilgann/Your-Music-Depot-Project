@@ -323,15 +323,37 @@ class TestStudentEntity(unittest.TestCase):
         row = {"student_id": "s1", "person_id": "p1"}
         s = StudentEntity.from_dict(row)
         self.assertEqual(s.student_id, "s1")
-        self.assertIsNone(s.skill_level)
         self.assertIsNone(s.age)
+        self.assertEqual(s.instrument_skill_levels, [])
         self.assertEqual(s.requirements, [])
 
-    def test_from_dict_with_skill_level(self):
+    def test_from_dict_with_instrument_skill_levels(self):
         from backend.app.domain.entities.student import StudentEntity
-        row = {"student_id": "s1", "person_id": "p1", "skill_level": "advanced"}
+        row = {
+            "student_id": "s1",
+            "person_id": "p1",
+            "instrument_skill_levels": [
+                {"name": "Piano", "family": "keyboard", "skill_level": "advanced"},
+                {"name": "Voice", "family": "voice", "skill_level": "beginner"},
+            ],
+        }
         s = StudentEntity.from_dict(row)
-        self.assertEqual(s.skill_level.value, "advanced")
+        self.assertEqual(len(s.instrument_skill_levels), 2)
+        self.assertEqual(s.instrument_skill_levels[0].instrument.name, "Piano")
+        self.assertEqual(s.instrument_skill_levels[0].skill_level.value, "advanced")
+
+    def test_skill_level_for(self):
+        from backend.app.domain.entities.student import StudentEntity
+        row = {
+            "student_id": "s1",
+            "person_id": "p1",
+            "instrument_skill_levels": [
+                {"name": "Piano", "family": "keyboard", "skill_level": "intermediate"},
+            ],
+        }
+        s = StudentEntity.from_dict(row)
+        self.assertEqual(s.skill_level_for("Piano", "keyboard").value, "intermediate")
+        self.assertIsNone(s.skill_level_for("Guitar", "strings"))
 
     def test_from_dict_with_requirements(self):
         from backend.app.domain.entities.student import StudentEntity
@@ -351,14 +373,17 @@ class TestStudentEntity(unittest.TestCase):
         row = {
             "student_id": "s1",
             "person_id": "p1",
-            "skill_level": "intermediate",
+            "instrument_skill_levels": [
+                {"name": "Piano", "family": "keyboard", "skill_level": "intermediate"},
+            ],
             "age": 14,
             "client_id": "c1",
             "requirements": [],
         }
         s = StudentEntity.from_dict(row)
         d = s.to_dict()
-        self.assertEqual(d["skill_level"], "intermediate")
+        self.assertEqual(len(d["instrument_skill_levels"]), 1)
+        self.assertEqual(d["instrument_skill_levels"][0]["skill_level"], "intermediate")
         self.assertEqual(d["age"], 14)
         self.assertEqual(d["client_id"], "c1")
 
@@ -498,11 +523,11 @@ class TestLessonOccurrenceEntity(unittest.TestCase):
 
     def test_default_status_is_scheduled(self):
         occ = self._occurrence()
-        self.assertEqual(occ.status.value, "scheduled")
+        self.assertEqual(occ.status.value, "Scheduled")
 
     def test_completed_status_accepted(self):
-        occ = self._occurrence(status="completed")
-        self.assertEqual(occ.status.value, "completed")
+        occ = self._occurrence(status="Completed")
+        self.assertEqual(occ.status.value, "Completed")
 
     def test_from_dict_parses_status(self):
         from backend.app.domain.entities.lesson_occurrence import LessonOccurrenceEntity
@@ -513,10 +538,10 @@ class TestLessonOccurrenceEntity(unittest.TestCase):
             "end_time": "11:00:00",
             "instructor_id": "i1",
             "room_id": "r1",
-            "status": "completed",
+            "status": "Completed",
         }
         occ = LessonOccurrenceEntity.from_dict(row)
-        self.assertEqual(occ.status.value, "completed")
+        self.assertEqual(occ.status.value, "Completed")
 
     def test_from_dict_default_status_is_scheduled(self):
         from backend.app.domain.entities.lesson_occurrence import LessonOccurrenceEntity
@@ -529,7 +554,7 @@ class TestLessonOccurrenceEntity(unittest.TestCase):
             "room_id": "r1",
         }
         occ = LessonOccurrenceEntity.from_dict(row)
-        self.assertEqual(occ.status.value, "scheduled")
+        self.assertEqual(occ.status.value, "Scheduled")
 
     def test_to_dict_includes_expected_keys(self):
         occ = self._occurrence()

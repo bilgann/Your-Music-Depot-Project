@@ -1,8 +1,11 @@
 import Button from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
 import { NumberField, SelectField, TextField } from "@/components/ui/fields";
+import MultiSelect from "@/components/ui/multi_select";
+import RecurrencePicker from "@/components/ui/recurrence_picker";
 import type { CourseInstrument } from "@/features/courses/api/course";
 import type { CourseFormState } from "@/features/courses/hooks/use_course_crud";
+import type { Room } from "@/features/rooms/api/room";
 
 type Option = { value: string; label: string };
 
@@ -10,6 +13,7 @@ interface Props {
     title: string;
     form: CourseFormState;
     roomOptions: Option[];
+    roomData?: Room[];
     instructorOptions: Option[];
     saving: boolean;
     onClose: () => void;
@@ -47,12 +51,6 @@ const INSTRUMENT_FAMILY_OPTIONS = [
     { value: "other", label: "Other" },
 ];
 
-function toggleInstructorSelection(instructorIds: string[], instructorId: string) {
-    return instructorIds.includes(instructorId)
-        ? instructorIds.filter((id) => id !== instructorId)
-        : [...instructorIds, instructorId];
-}
-
 function updateInstrument(instruments: CourseInstrument[], index: number, changes: Partial<CourseInstrument>) {
     return instruments.map((instrument, instrumentIndex) => {
         if (instrumentIndex !== index) return instrument;
@@ -60,45 +58,38 @@ function updateInstrument(instruments: CourseInstrument[], index: number, change
     });
 }
 
-export default function CourseModal({ title, form, roomOptions, instructorOptions, saving, onClose, onSubmit, onChange }: Props) {
+export default function CourseModal({ title, form, roomOptions, roomData, instructorOptions, saving, onClose, onSubmit, onChange }: Props) {
+    function handleRoomChange(roomId: string) {
+        const room = roomData?.find((r) => r.room_id === roomId);
+        onChange({
+            ...form,
+            room_id: roomId,
+            capacity: room?.capacity ? String(room.capacity) : form.capacity,
+        });
+    }
+
     return (
         <Modal title={title} onClose={onClose} onSubmit={onSubmit} submitLabel={title} saving={saving}>
             <TextField label="Name" value={form.name} onChange={(value) => onChange({ ...form, name: value })} required />
             <TextField label="Description" value={form.description} onChange={(value) => onChange({ ...form, description: value })} />
-            <SelectField label="Room" value={form.room_id} onChange={(value) => onChange({ ...form, room_id: value })} options={roomOptions} required />
+            <SelectField label="Room" value={form.room_id} onChange={handleRoomChange} options={roomOptions} required />
 
-            <div className="form-field">
-                <label>Instructors</label>
-                <div style={{ display: "grid", gap: 8 }}>
-                    {instructorOptions.map((option, index) => (
-                        <label key={option.value} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                            <input
-                                type="checkbox"
-                                checked={form.instructor_ids.includes(option.value)}
-                                onChange={() => onChange({
-                                    ...form,
-                                    instructor_ids: toggleInstructorSelection(form.instructor_ids, option.value),
-                                })}
-                            />
-                            <span>{option.label}{index === 0 ? "" : ""}</span>
-                        </label>
-                    ))}
-                </div>
-                <p className="table-empty" style={{ marginTop: 8 }}>The first selected instructor is treated as the lead instructor.</p>
-            </div>
+            <MultiSelect
+                label="Instructors"
+                options={instructorOptions}
+                selected={form.instructor_ids}
+                onChange={(instructor_ids) => onChange({ ...form, instructor_ids })}
+                hint="The first selected instructor is treated as the lead instructor."
+            />
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div className="form-field">
-                    <label>Period Start</label>
-                    <input type="date" value={form.period_start} onChange={(e) => onChange({ ...form, period_start: e.target.value })} required />
-                </div>
-                <div className="form-field">
-                    <label>Period End</label>
-                    <input type="date" value={form.period_end} onChange={(e) => onChange({ ...form, period_end: e.target.value })} required />
-                </div>
-            </div>
-
-            <TextField label="Recurrence" value={form.recurrence} onChange={(value) => onChange({ ...form, recurrence: value })} required />
+            <RecurrencePicker
+                value={form.recurrence}
+                onChange={(value) => onChange({ ...form, recurrence: value })}
+                periodStart={form.period_start}
+                periodEnd={form.period_end}
+                onPeriodChange={(start, end) => onChange({ ...form, period_start: start, period_end: end })}
+                required
+            />
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div className="form-field">

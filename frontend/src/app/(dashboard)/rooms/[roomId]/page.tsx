@@ -4,7 +4,9 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import DataState from "@/components/ui/data_state";
 import Navbar from "@/components/ui/navbar";
+import AddInstrumentModal from "@/features/rooms/components/add_instrument_modal";
 import BlockedTimeModal from "@/features/rooms/components/blocked_time_modal";
+import MoveInstrumentModal from "@/features/rooms/components/move_instrument_modal";
 import RoomDetailTabs from "@/features/rooms/components/room_detail_tabs";
 import RoomInfoCard from "@/features/rooms/components/room_info_card";
 import { useRoomDetail } from "@/features/rooms/hooks/use_room_detail";
@@ -25,8 +27,23 @@ export default function RoomDetailPage() {
         openBlockedTimeModal,
         handleBlockedTimeSubmit,
         handleBlockedTimeDelete,
+        instruments,
+        otherRoomOptions,
+        showAddInstrumentModal,
+        setShowAddInstrumentModal,
+        showMoveInstrumentModal,
+        setShowMoveInstrumentModal,
+        moveInstrumentIndex,
+        savingInstrument,
+        openAddInstrumentModal,
+        openMoveInstrumentModal,
+        handleAddInstrument,
+        handleDeleteInstrument,
+        handleMoveInstrument,
     } = useRoomDetail(roomId);
     const [activeSection, setActiveSection] = useState("sessions");
+
+    const moveInstrument = moveInstrumentIndex !== null ? instruments[moveInstrumentIndex] : null;
 
     return (
         <>
@@ -46,6 +63,10 @@ export default function RoomDetailPage() {
                             blockedTimes={blockedTimes}
                             onAddBlockedTime={openBlockedTimeModal}
                             onDeleteBlockedTime={handleBlockedTimeDelete}
+                            instruments={instruments}
+                            onAddInstrument={openAddInstrumentModal}
+                            onMoveInstrument={openMoveInstrumentModal}
+                            onDeleteInstrument={handleDeleteInstrument}
                         />
                     </>
                 )}
@@ -57,6 +78,22 @@ export default function RoomDetailPage() {
                     onChange={setBlockedTimeForm}
                     onClose={() => setShowBlockedTimeModal(false)}
                     onSubmit={handleBlockedTimeSubmit}
+                />
+            )}
+            {showAddInstrumentModal && (
+                <AddInstrumentModal
+                    saving={savingInstrument}
+                    onClose={() => setShowAddInstrumentModal(false)}
+                    onSubmit={handleAddInstrument}
+                />
+            )}
+            {showMoveInstrumentModal && moveInstrument && (
+                <MoveInstrumentModal
+                    instrument={moveInstrument}
+                    roomOptions={otherRoomOptions}
+                    saving={savingInstrument}
+                    onClose={() => setShowMoveInstrumentModal(false)}
+                    onSubmit={handleMoveInstrument}
                 />
             )}
         </>

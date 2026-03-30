@@ -274,11 +274,6 @@ body {
 }
 
 /* ── Dashboard ───────────────────────────────────────────────────────── */
-.dashboard-content {
-  max-width: 640px;
-  margin-bottom: 40px;
-}
-
 .dashboard-error {
   background: var(--color-error-bg);
   color: var(--color-error-fg);
@@ -292,7 +287,7 @@ body {
 .dashboard-stats {
   display: flex;
   gap: 16px;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 .stat-card {
@@ -339,12 +334,6 @@ body {
   color: var(--color-text-muted);
 }
 
-/* ── Quick action buttons ────────────────────────────────────────────── */
-.dashboard-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
 
 .action-btn {
   display: inline-flex;
@@ -811,11 +800,247 @@ body {
   color: var(--color-danger);
 }
 
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px 4px 10px;
+  border-radius: 20px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+.tag-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s;
+}
+.tag-chip-remove:hover {
+  background: rgba(255,255,255,0.45);
+}
+
 .modal-footer {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
   margin-top: 20px;
+}
+
+/* ── Recurrence picker ──────────────────────────────────────────────── */
+.recurrence-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.recurrence-picker__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+.recurrence-picker__controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.recurrence-picker__type {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.recurrence-picker__type .recurrence-tab {
+  flex: 1;
+  text-align: center;
+}
+.recurrence-tab {
+  padding: 7px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: none;
+  background: var(--color-bg-muted);
+  color: var(--color-text-subtle);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.recurrence-tab:not(:last-child) {
+  border-right: 1px solid var(--color-border-input);
+}
+.recurrence-tab:hover {
+  background: var(--color-bg-hover);
+}
+.recurrence-tab--active {
+  background: var(--color-primary);
+  color: #fff;
+}
+.recurrence-tab--active:hover {
+  background: var(--color-primary-dark);
+}
+.recurrence-picker__date {
+  max-width: 200px;
+}
+.recurrence-picker__preset {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.recurrence-picker__preset .recurrence-tab {
+  flex: 1;
+  text-align: center;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+}
+.recurrence-picker__days {
+  display: flex;
+  gap: 4px;
+}
+.recurrence-picker__month-day {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.recurrence-picker__month-day label {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+.recurrence-picker__month-day input {
+  max-width: 80px;
+}
+.recurrence-picker__custom {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.recurrence-picker__custom input {
+  font-family: monospace;
+}
+.recurrence-picker__hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+.recurrence-picker__period {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.recurrence-picker__preview {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+/* ── Day toggle (recurrence picker) ─────────────────────────────────── */
+.day-toggle {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border-input);
+  background: var(--color-bg-muted);
+  color: var(--color-text-subtle);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.day-toggle:hover {
+  background: var(--color-bg-hover);
+}
+.day-toggle--active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+.day-toggle--active:hover {
+  background: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+}
+.day-toggle--sm {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+/* ── Multi-select combo box ──────────────────────────────────────────── */
+.multi-select-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.multi-select-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+.multi-select-chip-remove {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 2px;
+  opacity: 0.7;
+}
+.multi-select-chip-remove:hover {
+  opacity: 1;
+}
+.multi-select-input-wrapper {
+  position: relative;
+}
+.multi-select-dropdown {
+  position: absolute;
+  z-index: 20;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--color-bg-muted);
+  border: 1px solid var(--color-border-input);
+  border-radius: 6px;
+  margin-top: 2px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.multi-select-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.multi-select-option:hover {
+  background: var(--color-bg-hover);
 }
 
 /* ── Back button ─────────────────────────────────────────────────────── */
@@ -1096,16 +1321,19 @@ body {
 
 .nav-group {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 10px 12px;
+  width: 72px;
+  flex-shrink: 0;
+  padding: 10px 0;
   border-right: 1px solid var(--color-border);
 }
 
 .nav-btn {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border-input);
   background: var(--color-bg);
@@ -1122,7 +1350,6 @@ body {
 
 .days-row {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
   flex: 1;
 }
 
@@ -1185,7 +1412,6 @@ body {
 
 .days-col {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
   flex: 1;
   min-width: 0;
 }
@@ -1207,6 +1433,26 @@ body {
 .slot-cell {
   height: var(--row-height, 54px);
   border-bottom: 1px solid var(--color-border-subtle);
+}
+
+/* ── Calendar event blocks ───────────────────────────────────────────── */
+.ac-event {
+  overflow: hidden;
+  box-sizing: border-box;
+  font-size: 0.85rem;
+  line-height: 1.3;
+}
+
+.ac-event-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ac-event-time {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ── Calendar event buttons ──────────────────────────────────────────── */
@@ -1521,9 +1767,6 @@ body {
     flex-direction: column;
   }
 
-  .dashboard-actions {
-    flex-direction: column;
-  }
 
   .client-tabs {
     overflow-x: auto;
@@ -1542,6 +1785,213 @@ body {
   }
 
   .toast {
+    max-width: 100%;
+  }
+}
+
+/* ── Timetable modal ────────────────────────────────────────────────── */
+.timetable-modal {
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  width: 95vw;
+  max-width: 1100px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+}
+.timetable-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.timetable-controls__left,
+.timetable-controls__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.timetable-view-tabs {
+  display: flex;
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-left: 8px;
+}
+.timetable-view-tab {
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: none;
+  background: var(--color-bg-muted);
+  color: var(--color-text-subtle);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.timetable-view-tab:not(:last-child) {
+  border-right: 1px solid var(--color-border-input);
+}
+.timetable-view-tab.active {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+/* ── Print timetable (screen preview + print) ───────────────────────── */
+.print-timetable {
+  padding: 24px;
+  background: #fff;
+  color: #1a1a1a;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+.print-timetable__header {
+  margin-bottom: 20px;
+  text-align: center;
+}
+.print-timetable__header h2 {
+  font-size: 1.4rem;
+  margin: 0 0 4px;
+  color: #1a1a1a;
+}
+.print-timetable__header p {
+  font-size: 0.9rem;
+  color: #555;
+  margin: 0;
+}
+.print-timetable__loading {
+  text-align: center;
+  padding: 40px;
+  color: #888;
+}
+
+/* Week view table */
+.print-timetable__week {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.print-timetable__week th,
+.print-timetable__week td {
+  border: 1px solid #ccc;
+  padding: 6px 8px;
+  vertical-align: top;
+  text-align: center;
+}
+.print-timetable__week th {
+  background: #f5f5f5;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+.print-timetable__date-num {
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: #666;
+}
+.print-timetable__time-col {
+  width: 70px;
+}
+.print-timetable__time-cell {
+  font-size: 0.75rem;
+  color: #555;
+  white-space: nowrap;
+  text-align: right;
+  padding-right: 10px;
+}
+.print-timetable__cell {
+  min-height: 28px;
+  height: 28px;
+}
+.print-timetable__lesson {
+  background: #e8f4fd;
+  border-radius: 4px;
+  padding: 3px 6px;
+  margin-bottom: 2px;
+  text-align: left;
+}
+.print-timetable__lesson-time {
+  font-weight: 700;
+  font-size: 0.75rem;
+  display: block;
+}
+.print-timetable__lesson-detail {
+  font-size: 0.7rem;
+  color: #444;
+  display: block;
+}
+
+/* Month view table */
+.print-timetable__month {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.print-timetable__month th {
+  border: 1px solid #ccc;
+  padding: 6px;
+  background: #f5f5f5;
+  font-weight: 700;
+  text-align: center;
+}
+.print-timetable__month-cell {
+  border: 1px solid #ccc;
+  padding: 4px 6px;
+  vertical-align: top;
+  height: 80px;
+  width: calc(100% / 7);
+}
+.print-timetable__month-cell.other-month {
+  background: #fafafa;
+  color: #bbb;
+}
+.print-timetable__month-day {
+  font-weight: 700;
+  font-size: 0.8rem;
+  margin-bottom: 2px;
+}
+.print-timetable__month-lesson {
+  font-size: 0.7rem;
+  background: #e8f4fd;
+  border-radius: 3px;
+  padding: 1px 4px;
+  margin-bottom: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Print media ────────────────────────────────────────────────────── */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-timetable,
+  .print-timetable * {
+    visibility: visible;
+  }
+  .print-timetable {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 20px;
+    border-radius: 0;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .modal-overlay {
+    position: static;
+    background: none;
+  }
+  .timetable-modal {
+    box-shadow: none;
+    border-radius: 0;
+    max-height: none;
+    width: 100%;
     max-width: 100%;
   }
 }

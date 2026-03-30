@@ -1,4 +1,6 @@
 import Button from "@/components/ui/button";
+import Pagination from "@/components/ui/pagination";
+import { useClientPagination } from "@/hooks/use_client_pagination";
 import type { StudentCompatibilityItem } from "@/features/students/api/compatibility";
 
 interface Props {
@@ -24,6 +26,8 @@ function getVerdictClassName(item: StudentCompatibilityItem) {
 }
 
 export default function StudentCompatibilityTab({ items, onAddOverride, onEditOverride }: Props) {
+    const { page, pageCount, pageData, setPage } = useClientPagination(items);
+
     return (
         <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 16 }}>
@@ -36,36 +40,39 @@ export default function StudentCompatibilityTab({ items, onAddOverride, onEditOv
             {items.length === 0 ? (
                 <p className="table-empty">No instructors available to evaluate compatibility.</p>
             ) : (
-                <div className="data-table-wrapper">
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th>Instructor</th>
-                                <th>Verdict</th>
-                                <th>Reasons</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {items.map((item) => (
-                                <tr key={item.instructor_id}>
-                                    <td>{item.instructor_name}</td>
-                                    <td>
-                                        <span className={`status-badge status-${getVerdictClassName(item)}`}>
-                                            {getVerdictLabel(item)}
-                                        </span>
-                                    </td>
-                                    <td>{item.reasons.length > 0 ? item.reasons.join(" ") : "No compatibility warnings."}</td>
-                                    <td>
-                                        <Button variant="secondary" onClick={() => onEditOverride(item.instructor_id)}>
-                                            Save Override
-                                        </Button>
-                                    </td>
+                <>
+                    <div className="data-table-wrapper">
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Instructor</th>
+                                    <th>Verdict</th>
+                                    <th>Reasons</th>
+                                    <th>Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                {pageData.map((item) => (
+                                    <tr key={item.instructor_id}>
+                                        <td>{item.instructor_name}</td>
+                                        <td>
+                                            <span className={`status-badge status-${getVerdictClassName(item)}`}>
+                                                {getVerdictLabel(item)}
+                                            </span>
+                                        </td>
+                                        <td>{item.reasons.length > 0 ? item.reasons.join(" ") : "No compatibility warnings."}</td>
+                                        <td>
+                                            <Button variant="secondary" onClick={() => onEditOverride(item.instructor_id)}>
+                                                Save Override
+                                            </Button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <Pagination page={page} pageCount={pageCount} onPageChange={setPage} />
+                </>
             )}
         </div>
     );

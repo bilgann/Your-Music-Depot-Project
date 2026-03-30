@@ -88,8 +88,8 @@ def list_client_invoices(client_id):
 @require_auth
 def list_client_payments(client_id):
     try:
-        data = payment_svc.get_payments_by_client(client_id)
-        return jsonify(ResponseContract(True, "OK", data).to_dict()), 200
+        transactions = CreditTransaction.get_by_client(client_id)
+        return jsonify(ResponseContract(True, "OK", transactions).to_dict()), 200
     except Exception as e:
         return error_response(e)
 

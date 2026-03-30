@@ -1,3 +1,5 @@
+import Pagination from "@/components/ui/pagination";
+import { useClientPagination } from "@/hooks/use_client_pagination";
 import type { InstructorCompatibility } from "@/features/instructors/api/instructor_detail";
 
 interface Props {
@@ -13,6 +15,8 @@ function toClassName(verdict: string) {
 }
 
 export default function InstructorCompatibilityTab({ items }: Props) {
+    const { page, pageCount, pageData, setPage } = useClientPagination(items);
+
     if (items.length === 0) {
         return <p className="table-empty">No current students are available to evaluate compatibility for this instructor.</p>;
     }
@@ -32,7 +36,7 @@ export default function InstructorCompatibilityTab({ items }: Props) {
                         </tr>
                     </thead>
                     <tbody>
-                        {items.map((item) => {
+                        {pageData.map((item) => {
                             const verdict = getVerdictLabel(item);
                             return (
                                 <tr key={item.student_id}>
@@ -49,6 +53,7 @@ export default function InstructorCompatibilityTab({ items }: Props) {
                     </tbody>
                 </table>
             </div>
+            <Pagination page={page} pageCount={pageCount} onPageChange={setPage} />
         </div>
     );
 }

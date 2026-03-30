@@ -12,7 +12,8 @@ export function useClientDetail(clientId: string) {
 
     async function refresh() {
         try {
-            setLoading(true);
+            // Only show skeleton on initial load, not on refreshes
+            if (!client) setLoading(true);
             const [clientData, studentsData, invoicesData, paymentsData] = await Promise.all([
                 getClientById(clientId),
                 getClientStudents(clientId),

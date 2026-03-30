@@ -114,11 +114,11 @@ def check(
                     )
 
     # ── 3. Student requirements vs instructor credentials ─────────────────────
-    active_credential_types = {
-        c.credential_type
-        for c in credentials
+    active_credentials = [
+        c for c in credentials
         if c.instructor_id == instructor.instructor_id and not c.is_expired
-    }
+    ]
+    active_credential_types = {c.credential_type for c in active_credentials}
     for requirement in student.requirements:
         if requirement.requirement_type == "credential":
             if requirement.value not in active_credential_types:
@@ -126,6 +126,18 @@ def check(
                     f"Instructor does not hold an active '{requirement.value}' credential "
                     f"required by this student."
                 )
+
+    # ── 4. Per-instrument skill level vs instructor proficiencies ─────────────
+    for isl in student.instrument_skill_levels:
+        covered = any(
+            cred.can_teach(isl.instrument, isl.skill_level)
+            for cred in active_credentials
+        )
+        if not covered:
+            reasons.append(
+                f"Instructor cannot teach {isl.instrument.name} "
+                f"at {isl.skill_level.value} level."
+            )
 
     return CompatibilityResult.ok(
         hard_verdict=hard_verdict,

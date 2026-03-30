@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createCourse, deleteCourse, updateCourse } from "@/features/courses/api/course";
 import { getInstructors } from "@/features/instructors/api/instructor";
 import { getRooms } from "@/features/rooms/api/room";
+import type { Room } from "@/features/rooms/api/room";
 import { useToast } from "@/components/ui/toast";
 import type { Course, CourseInstrument } from "@/features/courses/api/course";
 
@@ -73,6 +74,7 @@ export function useCourseCrud(refresh: () => Promise<void>) {
     const [form, setForm] = useState<CourseFormState>(emptyForm);
     const [saving, setSaving] = useState(false);
     const [rooms, setRooms] = useState<Option[]>([]);
+    const [roomData, setRoomData] = useState<Room[]>([]);
     const [instructors, setInstructors] = useState<Option[]>([]);
 
     useEffect(() => {
@@ -82,6 +84,7 @@ export function useCourseCrud(refresh: () => Promise<void>) {
                     getRooms(),
                     getInstructors(),
                 ]);
+                setRoomData(roomData);
                 setRooms(roomData.map((room) => ({ value: room.room_id, label: room.name })));
                 setInstructors(instructorData.map((instructor) => ({ value: instructor.instructor_id, label: instructor.name })));
             } catch {
@@ -183,6 +186,7 @@ export function useCourseCrud(refresh: () => Promise<void>) {
         setForm,
         saving,
         rooms,
+        roomData,
         instructors,
         openAdd,
         openEdit,

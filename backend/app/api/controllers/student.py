@@ -81,6 +81,21 @@ def get_student_lessons(student_id):
         return error_response(e)
 
 
+@student_bp.route("/<student_id>/timetable", methods=["GET"])
+@require_auth
+def get_student_timetable(student_id):
+    """GET /api/students/<id>/timetable?start=YYYY-MM-DD&end=YYYY-MM-DD"""
+    try:
+        start = request.args.get("start", "")
+        end = request.args.get("end", "")
+        if not start or not end:
+            return jsonify(ResponseContract(False, "start and end query params required.").to_dict()), 400
+        data = svc.get_student_timetable(student_id, start, end)
+        return jsonify(ResponseContract(True, "OK", data).to_dict()), 200
+    except Exception as e:
+        return error_response(e)
+
+
 @student_bp.route("/<student_id>/invoices", methods=["GET"])
 @require_auth
 def get_student_invoices(student_id):

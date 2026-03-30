@@ -24,7 +24,7 @@ class LessonOccurrence:
         return (
             DatabaseConnection().client
             .table("lesson_occurrence")
-            .select("*")
+            .select("*, lesson_enrollment(enrollment_id, student_id, attendance_status)")
             .eq("lesson_id", lesson_id)
             .order("date")
             .execute()

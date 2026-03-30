@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { getInstructors } from "@/features/instructors/api/instructor";
 import { addCompatibilityOverride, checkCompatibility } from "@/features/students/api/compatibility";
-import { getStudentById, getStudentLessons, getStudentInvoices } from "@/features/students/api/student";
+import { getStudentById, getStudentLessons, getStudentInvoices, updateStudent } from "@/features/students/api/student";
 import { useToast } from "@/components/ui/toast";
 import type { Instructor } from "@/features/instructors/api/instructor";
 import type { StudentCompatibilityItem } from "@/features/students/api/compatibility";
-import type { Student, StudentEnrollment, StudentInvoice } from "@/features/students/api/student";
+import type { Student, StudentEnrollment, StudentInvoice, TeachingRequirement, InstrumentSkillLevel } from "@/features/students/api/student";
 
 export type CompatibilityOverrideFormState = {
     instructor_id: string;
@@ -52,6 +52,8 @@ export function useStudentDetail(studentId: string) {
     const [showCompatibilityModal, setShowCompatibilityModal] = useState(false);
     const [compatibilityForm, setCompatibilityForm] = useState<CompatibilityOverrideFormState>(emptyCompatibilityForm);
     const [savingCompatibility, setSavingCompatibility] = useState(false);
+    const [savingRequirements, setSavingRequirements] = useState(false);
+    const [savingSkillLevels, setSavingSkillLevels] = useState(false);
 
     async function refresh() {
         try {
@@ -131,6 +133,36 @@ export function useStudentDetail(studentId: string) {
         }
     }
 
+    async function handleUpdateInstrumentSkillLevels(levels: InstrumentSkillLevel[]) {
+        setSavingSkillLevels(true);
+        try {
+            const sanitized = levels.filter((isl) => isl.name.trim() && isl.family && isl.skill_level);
+            await updateStudent(studentId, { instrument_skill_levels: sanitized });
+            toast("Instrument skill levels updated.", "success");
+            await refresh();
+        } catch {
+            toast("Failed to update instrument skill levels.", "error");
+        } finally {
+            setSavingSkillLevels(false);
+        }
+    }
+
+    async function handleUpdateRequirements(requirements: TeachingRequirement[]) {
+        setSavingRequirements(true);
+        try {
+            const sanitized = requirements
+                .map((r) => ({ requirement_type: r.requirement_type, value: r.value.trim() }))
+                .filter((r) => r.value.length > 0);
+            await updateStudent(studentId, { requirements: sanitized });
+            toast("Requirements updated.", "success");
+            await refresh();
+        } catch {
+            toast("Failed to update requirements.", "error");
+        } finally {
+            setSavingRequirements(false);
+        }
+    }
+
     return {
         student,
         enrollments,
@@ -139,6 +171,10 @@ export function useStudentDetail(studentId: string) {
         loading,
         error,
         refresh,
+        savingRequirements,
+        handleUpdateRequirements,
+        savingSkillLevels,
+        handleUpdateInstrumentSkillLevels,
         showCompatibilityModal,
         setShowCompatibilityModal,
         compatibilityForm,

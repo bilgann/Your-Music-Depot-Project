@@ -28,6 +28,21 @@ def list_lessons():
         return error_response(e)
 
 
+@lesson_bp.route("/occurrences/range", methods=["GET"])
+@require_auth
+def list_occurrences_in_range():
+    """GET /api/lessons/occurrences/range?start=YYYY-MM-DD&end=YYYY-MM-DD"""
+    try:
+        start = request.args.get("start")
+        end   = request.args.get("end")
+        if not start or not end:
+            return jsonify(ResponseContract(False, "start and end query params required.").to_dict()), 400
+        data = svc.get_occurrences_for_range(start, end)
+        return jsonify(ResponseContract(True, "OK", data).to_dict()), 200
+    except Exception as e:
+        return error_response(e)
+
+
 @lesson_bp.route("/<lesson_id>", methods=["GET"])
 @require_auth
 def get_lesson(lesson_id):
@@ -78,6 +93,17 @@ def delete_lesson(lesson_id):
         return error_response(e)
 
 
+@lesson_bp.route("/<lesson_id>/occurrences", methods=["GET"])
+@require_auth
+def list_lesson_occurrences(lesson_id):
+    """GET /api/lessons/<lesson_id>/occurrences — existing projected occurrences."""
+    try:
+        data = svc.get_occurrences_for_lesson(lesson_id)
+        return jsonify(ResponseContract(True, "OK", data).to_dict()), 200
+    except Exception as e:
+        return error_response(e)
+
+
 # ── Schedule projection ───────────────────────────────────────────────────────
 
 @lesson_bp.route("/<lesson_id>/project", methods=["POST"])
@@ -89,7 +115,12 @@ def project_schedule(lesson_id):
     Idempotent — deletes and re-projects each time.
     """
     try:
-        result = svc.project_lesson_schedule(lesson_id)
+        body = request.get_json(silent=True) or {}
+        result = svc.project_lesson_schedule(
+            lesson_id,
+            period_start=body.get("period_start", ""),
+            period_end=body.get("period_end", ""),
+        )
         audit.log(g.user.user_id, "CREATE", "lesson_occurrence", lesson_id, None,
                   {"projected": len(result)})
         return jsonify(ResponseContract(

@@ -40,6 +40,7 @@ export type Lesson = {
   rate?: number | null
   status?: string | null
   recurrence?: string | null
+  instrument?: { name: string; family: string } | null
 }
 
 export type Instructor = {

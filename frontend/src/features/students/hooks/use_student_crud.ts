@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createStudent, updateStudent, deleteStudent } from "@/features/students/api/student";
-import type { Student, TeachingRequirement } from "@/features/students/api/student";
+import type { Student, TeachingRequirement, InstrumentSkillLevel } from "@/features/students/api/student";
 import { useToast } from "@/components/ui/toast";
 
 export type StudentFormState = {
@@ -10,6 +10,7 @@ export type StudentFormState = {
     client_id: string;
     clientLabel: string;
     age: string;
+    instrument_skill_levels: InstrumentSkillLevel[];
     requirements: TeachingRequirement[];
 };
 
@@ -20,6 +21,7 @@ const emptyForm: StudentFormState = {
     client_id: "",
     clientLabel: "",
     age: "",
+    instrument_skill_levels: [],
     requirements: [],
 };
 
@@ -54,6 +56,7 @@ export function useStudentCrud(refresh: () => Promise<void>) {
             client_id: stu.client_id ?? "",
             clientLabel: stu.client?.person?.name ?? "",
             age: stu.age != null ? String(stu.age) : "",
+            instrument_skill_levels: stu.instrument_skill_levels ?? [],
             requirements: stu.requirements ?? [],
         });
         setShowModal(true);
@@ -64,12 +67,16 @@ export function useStudentCrud(refresh: () => Promise<void>) {
         setSaving(true);
         try {
             const requirements = sanitizeRequirements(form.requirements);
+            const skillLevels = form.instrument_skill_levels.filter(
+                (isl) => isl.name.trim() && isl.family && isl.skill_level,
+            );
             const payload = {
                 name: form.name,
                 ...(form.email && { email: form.email }),
                 ...(form.phone && { phone: form.phone }),
                 client_id: form.client_id,
                 ...(form.age && { age: Number(form.age) }),
+                instrument_skill_levels: skillLevels,
                 ...(requirements.length > 0 && { requirements }),
             };
             if (editing) { await updateStudent(editing.student_id, payload); } else { await createStudent(payload); }

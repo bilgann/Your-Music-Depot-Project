@@ -1,6 +1,8 @@
-import { faPencil, faTrash, faChevronLeft, faChevronRight } from "@fortawesome/free-solid-svg-icons";
+import { faPencil, faTrash } from "@fortawesome/free-solid-svg-icons";
 import Button from "./button";
 import DataState from "./data_state";
+import Pagination from "./pagination";
+import { useClientPagination } from "@/hooks/use_client_pagination";
 
 export interface Column<T> {
     header: string;
@@ -20,6 +22,7 @@ interface DataTableProps<T> {
     page?: number;
     pageCount?: number;
     onPageChange?: (page: number) => void;
+    clientPageSize?: number;
 }
 
 export default function DataTable<T>({
@@ -32,14 +35,20 @@ export default function DataTable<T>({
     onEdit,
     onDelete,
     onRowClick,
-    page,
-    pageCount,
-    onPageChange,
+    page: externalPage,
+    pageCount: externalPageCount,
+    onPageChange: externalOnPageChange,
+    clientPageSize = 10,
 }: DataTableProps<T>) {
     const hasActions = onEdit || onDelete;
-    const paginationEnabled = !!onPageChange && page !== undefined && pageCount !== undefined;
-    const currentPage  = page      ?? 1;
-    const currentCount = pageCount ?? 1;
+    const serverPaginated = !!externalOnPageChange && externalPage !== undefined && externalPageCount !== undefined;
+
+    const clientPagination = useClientPagination(data, clientPageSize);
+
+    const rows = serverPaginated ? data : clientPagination.pageData;
+    const page = serverPaginated ? externalPage : clientPagination.page;
+    const pageCount = serverPaginated ? externalPageCount : clientPagination.pageCount;
+    const onPageChange = serverPaginated ? externalOnPageChange : clientPagination.setPage;
 
     return (
         <>
@@ -55,7 +64,7 @@ export default function DataTable<T>({
                             </tr>
                         </thead>
                         <tbody>
-                            {data.map((row) => (
+                            {rows.map((row) => (
                                 <tr
                                     key={getKey(row)}
                                     onClick={onRowClick ? () => onRowClick(row) : undefined}
@@ -86,25 +95,7 @@ export default function DataTable<T>({
                 </div>
             </DataState>
 
-            <div className="pagination">
-                <Button
-                    variant="icon"
-                    icon={faChevronLeft}
-                    onClick={paginationEnabled ? () => onPageChange(currentPage - 1) : undefined}
-                    disabled={!paginationEnabled || currentPage <= 1}
-                    title="Previous page"
-                />
-                <span className="pagination-info">
-                    {paginationEnabled ? `Page ${currentPage} of ${currentCount}` : "—"}
-                </span>
-                <Button
-                    variant="icon"
-                    icon={faChevronRight}
-                    onClick={paginationEnabled ? () => onPageChange(currentPage + 1) : undefined}
-                    disabled={!paginationEnabled || currentPage >= currentCount}
-                    title="Next page"
-                />
-            </div>
+            <Pagination page={page} pageCount={pageCount} onPageChange={onPageChange} />
         </>
     );
 }

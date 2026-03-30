@@ -100,6 +100,13 @@ INSTRUMENTS = [
     "Cello", "Flute", "Clarinet", "Trumpet", "Saxophone", "Viola",
 ]
 
+INSTRUMENT_FAMILIES = {
+    "Piano": "keyboard", "Guitar": "strings", "Violin": "strings",
+    "Drums": "percussion", "Voice": "voice", "Bass Guitar": "strings",
+    "Cello": "strings", "Flute": "woodwind", "Clarinet": "woodwind",
+    "Trumpet": "brass", "Saxophone": "woodwind", "Viola": "strings",
+}
+
 SKILL_LEVELS = ["beginner", "elementary", "intermediate", "advanced", "professional"]
 SKILL_WEIGHTS = [30, 30, 20, 12, 8]
 
@@ -344,13 +351,24 @@ def seed_clients_and_students(n_clients: int, n_students: int) -> tuple:
             "person_id": pid, "name": name,
             "email": rand_email(name), "phone": rand_phone(),
         })
+        # Each student plays 1-3 instruments at various skill levels
+        num_instruments = random.randint(1, 3)
+        student_instruments = random.sample(INSTRUMENTS, num_instruments)
+        isl = [
+            {
+                "name": inst,
+                "family": INSTRUMENT_FAMILIES[inst],
+                "skill_level": random.choices(SKILL_LEVELS, weights=SKILL_WEIGHTS)[0],
+            }
+            for inst in student_instruments
+        ]
         students.append({
-            "student_id":   sid,
-            "person_id":    pid,
-            "client_id":    random.choice(clients)["client_id"],
-            "skill_level":  random.choices(SKILL_LEVELS, weights=SKILL_WEIGHTS)[0],
-            "age":          random.randint(6, 65),
-            "requirements": [],
+            "student_id":              sid,
+            "person_id":               pid,
+            "client_id":               random.choice(clients)["client_id"],
+            "instrument_skill_levels": isl,
+            "age":                     random.randint(6, 65),
+            "requirements":            [],
         })
     batch_insert("person",  spersons, "person (students)")
     batch_insert("student", students, "student")

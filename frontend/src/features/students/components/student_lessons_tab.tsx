@@ -1,3 +1,4 @@
+import DataTable from "@/components/ui/data_table";
 import type { StudentEnrollment } from "@/features/students/api/student";
 
 interface Props {
@@ -20,39 +21,27 @@ const ATTENDANCE_LABELS: Record<string, string> = {
 };
 
 export default function StudentLessonsTab({ enrollments }: Props) {
-    if (enrollments.length === 0) {
-        return <p className="table-empty">No lessons enrolled.</p>;
-    }
     return (
-        <div className="data-table-wrapper">
-            <table className="data-table">
-                <thead>
-                    <tr>
-                        <th>Date &amp; Time</th>
-                        <th>Instructor</th>
-                        <th>Room</th>
-                        <th>Status</th>
-                        <th>Attendance</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {enrollments.map((e) => (
-                        <tr key={e.enrollment_id}>
-                            <td>{formatDateTime(e.lesson.start_time)}</td>
-                            <td>{e.lesson.instructor?.name || "--"}</td>
-                            <td>{e.lesson.room?.name || "--"}</td>
-                            <td>{e.lesson.status || "--"}</td>
-                            <td>
-                                {e.attendance_status ? (
-                                    <span className={`status-badge status-${e.attendance_status.toLowerCase().replace(" ", "-")}`}>
-                                        {ATTENDANCE_LABELS[e.attendance_status] ?? e.attendance_status}
-                                    </span>
-                                ) : "--"}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
+        <DataTable
+            loading={false}
+            error={null}
+            data={enrollments}
+            emptyMessage="No lessons enrolled."
+            getKey={(e) => e.enrollment_id}
+            columns={[
+                { header: "Date & Time", render: (e) => formatDateTime(e.lesson.start_time) },
+                { header: "Instructor", render: (e) => e.lesson.instructor?.name || "--" },
+                { header: "Room", render: (e) => e.lesson.room?.name || "--" },
+                { header: "Status", render: (e) => e.lesson.status || "--" },
+                {
+                    header: "Attendance",
+                    render: (e) => e.attendance_status ? (
+                        <span className={`status-badge status-${e.attendance_status.toLowerCase().replace(" ", "-")}`}>
+                            {ATTENDANCE_LABELS[e.attendance_status] ?? e.attendance_status}
+                        </span>
+                    ) : "--",
+                },
+            ]}
+        />
     );
 }

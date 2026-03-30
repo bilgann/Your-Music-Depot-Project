@@ -8,6 +8,7 @@ import Button from "@/components/ui/button";
 import { NumberField, TextField } from "@/components/ui/fields";
 import { Combobox } from "@/components/ui/combobox";
 import TeachingRequirementsBuilder from "@/features/students/components/teaching_requirements_builder";
+import InstrumentSkillLevelBuilder from "@/features/students/components/instrument_skill_level_builder";
 import { useStudents } from "@/features/students/hooks/use_students";
 import { useStudentCrud } from "@/features/students/hooks/use_student_crud";
 import { searchClients } from "@/features/clients/api/client";
@@ -54,6 +55,7 @@ export default function StudentsPage() {
                         fetchOptions={searchClients}
                         required
                     />
+                    <InstrumentSkillLevelBuilder value={form.instrument_skill_levels} onChange={(instrument_skill_levels) => setForm({ ...form, instrument_skill_levels })} />
                     <TeachingRequirementsBuilder value={form.requirements} onChange={(requirements) => setForm({ ...form, requirements })} />
                 </Modal>
             )}

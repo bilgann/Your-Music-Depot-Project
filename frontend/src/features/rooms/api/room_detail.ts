@@ -74,6 +74,16 @@ export async function updateRoomBlockedTimes(roomId: string, blockedTimes: RoomB
     return unwrapOne<RoomDetail>(body.data);
 }
 
+export async function updateRoomInstruments(roomId: string, instruments: RoomInstrument[]): Promise<RoomDetail> {
+    const res = await apiFetch(`/api/rooms/${roomId}`, {
+        method: "PUT",
+        body: JSON.stringify({ instruments }),
+    });
+    if (!res.ok) throw new Error(`Failed to update room instruments: ${res.statusText}`);
+    const body = await res.json();
+    return unwrapOne<RoomDetail>(body.data);
+}
+
 export function buildRoomSessions(
     lessons: RoomLesson[],
     roomId: string,

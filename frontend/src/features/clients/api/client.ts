@@ -31,11 +31,13 @@ export type ClientInvoice = {
 };
 
 export type ClientPayment = {
-    payment_id: string;
+    transaction_id: string;
+    client_id: string;
     amount: number;
+    reason: string | null;
     payment_method: string | null;
-    paid_on: string | null;
-    invoice_id: string;
+    invoice_id: string | null;
+    created_at: string;
 };
 
 export async function getClients(): Promise<Client[]> {

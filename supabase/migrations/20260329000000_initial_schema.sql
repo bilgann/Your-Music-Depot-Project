@@ -132,18 +132,18 @@ create table client (
 );
 
 -- Students — learners, always linked to a person; optionally to a client/guardian
--- skill_level   text: beginner | elementary | intermediate | advanced | professional
--- age           integer — used by CompatibilityService for instructor age restrictions
--- requirements  jsonb array of TeachingRequirement objects
---               (e.g. {"requirement_type":"credential","value":"cpr"})
+-- instrument_skill_levels  jsonb array of per-instrument skill levels
+--                          (e.g. {"name":"Piano","family":"keyboard","skill_level":"intermediate"})
+-- age                      integer — used by CompatibilityService for instructor age restrictions
+-- requirements             jsonb array of TeachingRequirement objects
+--                          (e.g. {"requirement_type":"credential","value":"cpr"})
 create table student (
-    student_id   uuid    primary key default gen_random_uuid(),
-    person_id    uuid    not null references person  (person_id) on delete restrict,
-    client_id    uuid             references client  (client_id) on delete set null,
-    skill_level  text             check (skill_level in
-                                     ('beginner','elementary','intermediate','advanced','professional')),
-    age          integer          check (age > 0),
-    requirements jsonb   not null default '[]'::jsonb
+    student_id               uuid    primary key default gen_random_uuid(),
+    person_id                uuid    not null references person  (person_id) on delete restrict,
+    client_id                uuid             references client  (client_id) on delete set null,
+    instrument_skill_levels  jsonb   not null default '[]'::jsonb,
+    age                      integer          check (age > 0),
+    requirements             jsonb   not null default '[]'::jsonb
 );
 
 

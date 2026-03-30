@@ -35,6 +35,33 @@ export async function getLessons(weekStart: string, weekEnd: string): Promise<Le
     return body.data ?? [];
 }
 
+export type CalendarEvent = {
+    id: string;
+    lesson_id: string | null;
+    course_id: string | null;
+    start_time: string;
+    end_time: string;
+    status: string;
+    date: string;
+};
+
+export async function getOccurrencesInRange(start: string, end: string): Promise<CalendarEvent[]> {
+    const res = await apiFetch(
+        `/api/lessons/occurrences/range?start=${start}&end=${end}`
+    );
+    if (!res.ok) throw new Error(`Failed to fetch occurrences: ${res.statusText}`);
+    const body = await res.json();
+    return (body.data ?? []).map((occ: Record<string, unknown>) => ({
+        id: occ.occurrence_id,
+        lesson_id: occ.lesson_id ?? null,
+        course_id: occ.course_id ?? null,
+        start_time: occ.start_datetime ?? occ.start_time,
+        end_time: occ.end_datetime ?? occ.end_time,
+        status: occ.status ?? 'Scheduled',
+        date: occ.date ?? '',
+    }));
+}
+
 export async function getLessonById(lessonId: string): Promise<Lesson> {
     return apiJson<Lesson>(`/api/lessons/${lessonId}`);
 }
@@ -71,6 +98,10 @@ export async function deleteLesson(lessonId: string): Promise<void> {
         const err = await res.text();
         throw new Error(`Failed to delete lesson: ${res.status} ${err}`);
     }
+}
+
+export async function getLessonOccurrences(lessonId: string): Promise<LessonOccurrence[]> {
+    return apiJson<LessonOccurrence[]>(`/api/lessons/${lessonId}/occurrences`);
 }
 
 export async function projectLessonSchedule(lessonId: string): Promise<LessonOccurrence[]> {

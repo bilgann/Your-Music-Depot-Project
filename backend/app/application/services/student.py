@@ -69,6 +69,16 @@ def get_student_lessons(student_id):
     return [_reshape_enrollment(r) for r in rows]
 
 
+def get_student_timetable(student_id: str, start: str, end: str):
+    """Return reshaped enrollments filtered to a date range."""
+    rows = LessonEnrollment.get_by_student(student_id)
+    filtered = [
+        r for r in rows
+        if start <= (r.get("lesson_occurrence") or {}).get("date", "") <= end
+    ]
+    return [_reshape_enrollment(r) for r in filtered]
+
+
 def _reshape_enrollment(row: dict) -> dict:
     """Flatten lesson_occurrence into the shape the frontend expects."""
     occ = row.get("lesson_occurrence") or {}
@@ -76,14 +86,19 @@ def _reshape_enrollment(row: dict) -> dict:
     person = raw_instructor.get("person") or {}
     instructor_name = person.get("name")
     raw_room = occ.get("room") or {}
+    occ_date = occ.get("date", "")
+    occ_start = occ.get("start_time", "")
+    occ_end   = occ.get("end_time", "")
+    start_dt = f"{occ_date}T{occ_start}" if occ_date and occ_start else occ_start
+    end_dt   = f"{occ_date}T{occ_end}"   if occ_date and occ_end   else occ_end
     return {
         "enrollment_id":    row.get("enrollment_id"),
         "attendance_status": row.get("attendance_status"),
         "enrolled_at":       row.get("enrolled_at"),
         "lesson": {
             "lesson_id":   occ.get("occurrence_id"),
-            "start_time":  occ.get("start_time"),
-            "end_time":    occ.get("end_time"),
+            "start_time":  start_dt,
+            "end_time":    end_dt,
             "status":      occ.get("status"),
             "rate":        occ.get("rate"),
             "instructor":  {"name": instructor_name} if instructor_name else None,

@@ -24,16 +24,44 @@ def get_lessons_for_week(start, end):
     return Lesson.get_for_week(start, end)
 
 
+def get_occurrences_for_range(start, end):
+    """Return lesson occurrences in a date range with combined date+time fields."""
+    rows = LessonOccurrence.get_in_range(start, end)
+    for row in rows:
+        d = row.get("date", "")
+        st = row.get("start_time", "")
+        et = row.get("end_time", "")
+        row["start_datetime"] = f"{d}T{st}" if d and st else st
+        row["end_datetime"]   = f"{d}T{et}" if d and et else et
+    return rows
+
+
 def get_lesson_by_id(lesson_id):
     return Lesson.get(lesson_id)
 
 
+def get_occurrences_for_lesson(lesson_id):
+    """Return all projected occurrences for a given lesson."""
+    return LessonOccurrence.get_by_lesson(lesson_id)
+
+
+_LESSON_COLUMNS = {
+    "instructor_id", "room_id", "start_time", "end_time",
+    "status", "rate", "recurrence", "student_ids", "course_id",
+}
+
+
+def _clean_payload(data: dict) -> dict:
+    """Strip fields that don't map to lesson table columns."""
+    return {k: v for k, v in data.items() if k in _LESSON_COLUMNS}
+
+
 def create_lesson(data):
-    return Lesson.create(data)
+    return Lesson.create(_clean_payload(data))
 
 
 def update_lesson(lesson_id, data):
-    return Lesson.update(lesson_id, data)
+    return Lesson.update(lesson_id, _clean_payload(data))
 
 
 def delete_lesson(lesson_id):
@@ -46,13 +74,14 @@ def delete_lesson(lesson_id):
 
 # ── Schedule projection ───────────────────────────────────────────────────────
 
-def project_lesson_schedule(lesson_id: str) -> list:
+def project_lesson_schedule(lesson_id: str, period_start: str = "", period_end: str = "") -> list:
     """
     Expand the lesson's recurrence rule into LessonOccurrenceEntity stubs,
     collect blocked_times from all participants, and persist the result.
 
     Idempotent: existing occurrences for this lesson are deleted first.
     """
+    from datetime import date, timedelta
     from backend.app.domain.entities.lesson import LessonEntity
     from backend.app.domain.entities.instructor import InstructorEntity
     from backend.app.domain.entities.room import RoomEntity
@@ -95,9 +124,13 @@ def project_lesson_schedule(lesson_id: str) -> list:
                 entity = ClientEntity.from_dict(crows[0])
                 blocked.extend(entity.blocked_times)
 
-    # Use the lesson's period dates as the projection window.
-    start_date = rows[0].get("period_start", "")
-    end_date   = rows[0].get("period_end",   "")
+    # Use provided period or default to today → 3 months out.
+    start_date = period_start or rows[0].get("period_start", "")
+    end_date   = period_end   or rows[0].get("period_end",   "")
+    if not start_date or not end_date:
+        today = date.today()
+        start_date = start_date or today.isoformat()
+        end_date   = end_date   or (today + timedelta(days=90)).isoformat()
     window = DateRange(period_start=start_date, period_end=end_date)
 
     # Re-project: delete existing first.

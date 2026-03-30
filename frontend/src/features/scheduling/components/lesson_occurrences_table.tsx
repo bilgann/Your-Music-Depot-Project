@@ -1,4 +1,6 @@
 import Button from "@/components/ui/button";
+import Pagination from "@/components/ui/pagination";
+import { useClientPagination } from "@/hooks/use_client_pagination";
 import type { LessonOccurrence } from "@/features/scheduling/api/lesson";
 
 interface Props {
@@ -29,6 +31,8 @@ export default function LessonOccurrencesTable({
     onOpenAttendance,
     onUnenroll,
 }: Props) {
+    const { page, pageCount, pageData, setPage } = useClientPagination(occurrences);
+
     return (
         <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -43,70 +47,73 @@ export default function LessonOccurrencesTable({
             {occurrences.length === 0 ? (
                 <p className="table-empty">No projected occurrences yet.</p>
             ) : (
-                <div className="data-table-wrapper">
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Time</th>
-                                <th>Status</th>
-                                <th>Enrollments</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {occurrences.map((occurrence) => (
-                                <tr key={occurrence.occurrence_id}>
-                                    <td>{formatDate(occurrence.date)}</td>
-                                    <td>{formatTime(occurrence.start_time)} - {formatTime(occurrence.end_time)}</td>
-                                    <td>{occurrence.status}</td>
-                                    <td>
-                                        {occurrence.enrollments?.length ? (
-                                            <div style={{ display: "grid", gap: 8 }}>
-                                                {occurrence.enrollments.map((enrollment) => (
-                                                    <div key={enrollment.enrollment_id} style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-                                                        <span>
-                                                            {enrollment.student_name}
-                                                            {enrollment.attendance_status ? ` (${enrollment.attendance_status})` : ""}
-                                                        </span>
-                                                        <div style={{ display: "flex", gap: 8 }}>
-                                                            <Button
-                                                                variant="secondary"
-                                                                onClick={() => onOpenAttendance(
-                                                                    occurrence.occurrence_id,
-                                                                    enrollment.student_id,
-                                                                    enrollment.student_name,
-                                                                    enrollment.attendance_status
-                                                                )}
-                                                                disabled={saving}
-                                                            >
-                                                                Attendance
-                                                            </Button>
-                                                            <Button
-                                                                variant="danger"
-                                                                onClick={() => onUnenroll(occurrence.occurrence_id, enrollment.student_id)}
-                                                                disabled={saving}
-                                                            >
-                                                                Remove
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            "--"
-                                        )}
-                                    </td>
-                                    <td>
-                                        <Button variant="primary" onClick={() => onOpenEnroll(occurrence.occurrence_id)} disabled={saving}>
-                                            Enroll Student
-                                        </Button>
-                                    </td>
+                <>
+                    <div className="data-table-wrapper">
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Status</th>
+                                    <th>Enrollments</th>
+                                    <th>Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                {pageData.map((occurrence) => (
+                                    <tr key={occurrence.occurrence_id}>
+                                        <td>{formatDate(occurrence.date)}</td>
+                                        <td>{formatTime(occurrence.start_time)} - {formatTime(occurrence.end_time)}</td>
+                                        <td>{occurrence.status}</td>
+                                        <td>
+                                            {occurrence.enrollments?.length ? (
+                                                <div style={{ display: "grid", gap: 8 }}>
+                                                    {occurrence.enrollments.map((enrollment) => (
+                                                        <div key={enrollment.enrollment_id} style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                                                            <span>
+                                                                {enrollment.student_name}
+                                                                {enrollment.attendance_status ? ` (${enrollment.attendance_status})` : ""}
+                                                            </span>
+                                                            <div style={{ display: "flex", gap: 8 }}>
+                                                                <Button
+                                                                    variant="secondary"
+                                                                    onClick={() => onOpenAttendance(
+                                                                        occurrence.occurrence_id,
+                                                                        enrollment.student_id,
+                                                                        enrollment.student_name,
+                                                                        enrollment.attendance_status
+                                                                    )}
+                                                                    disabled={saving}
+                                                                >
+                                                                    Attendance
+                                                                </Button>
+                                                                <Button
+                                                                    variant="danger"
+                                                                    onClick={() => onUnenroll(occurrence.occurrence_id, enrollment.student_id)}
+                                                                    disabled={saving}
+                                                                >
+                                                                    Remove
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                "--"
+                                            )}
+                                        </td>
+                                        <td>
+                                            <Button variant="primary" onClick={() => onOpenEnroll(occurrence.occurrence_id)} disabled={saving}>
+                                                Enroll Student
+                                            </Button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <Pagination page={page} pageCount={pageCount} onPageChange={setPage} />
+                </>
             )}
         </div>
     );
