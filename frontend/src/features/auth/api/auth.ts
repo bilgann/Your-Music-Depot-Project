@@ -1,0 +1,35 @@
+import config from "@/config";
+
+interface LoginResponse {
+    success: boolean;
+    message: string;
+    data: string | null; // JWT token
+}
+
+export async function login(username: string, password: string): Promise<LoginResponse> {
+    const res = await fetch(
+        `${config.API_BASE}/user/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
+        { method: "POST" }
+    );
+    return res.json();
+}
+
+export async function logout(token: string): Promise<void> {
+    await fetch(`${config.API_BASE}/user/logout`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+    });
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const res = await fetch(`${config.API_BASE}/user/password`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    });
+    return res.json();
+}

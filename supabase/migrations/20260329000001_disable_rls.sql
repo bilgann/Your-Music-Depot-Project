@@ -1,0 +1,2 @@
+-- RLS is disabled in 20260329000000_initial_schema.sql.
+-- This file is intentionally empty.
