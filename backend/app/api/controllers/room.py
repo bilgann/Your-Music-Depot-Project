@@ -41,7 +41,7 @@ def create_room():
         body = request.get_json()
         validate(body, "room")
         result = svc.create_room(body)
-        audit.log(g.user.id, "CREATE", "room",
+        audit.log(g.user.user_id, "CREATE", "room",
                   result[0].get("room_id") if result else None, None, body)
         return jsonify(ResponseContract(True, "Room created.", result).to_dict()), 201
     except Exception as e:
@@ -55,7 +55,7 @@ def update_room(room_id):
         body = request.get_json()
         validate(body, "room", partial=True)
         result = svc.update_room(room_id, body)
-        audit.log(g.user.id, "UPDATE", "room", room_id, None, body)
+        audit.log(g.user.user_id, "UPDATE", "room", room_id, None, body)
         return jsonify(ResponseContract(True, "Room updated.", result).to_dict()), 200
     except Exception as e:
         return error_response(e)
@@ -66,7 +66,7 @@ def update_room(room_id):
 def delete_room(room_id):
     try:
         svc.delete_room(room_id)
-        audit.log(g.user.id, "DELETE", "room", room_id)
+        audit.log(g.user.user_id, "DELETE", "room", room_id)
         return jsonify(ResponseContract(True, "Room deleted.").to_dict()), 200
     except Exception as e:
         return error_response(e)

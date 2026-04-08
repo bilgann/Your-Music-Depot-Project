@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import DataTable from "@/components/ui/data_table";
 import type { ClientStudent } from "@/features/clients/api/client";
 
 interface Props {
@@ -10,33 +11,19 @@ interface Props {
 export default function ClientStudentsTab({ students }: Props) {
     const router = useRouter();
 
-    if (students.length === 0) {
-        return <p className="table-empty">No students linked to this client.</p>;
-    }
     return (
-        <div className="data-table-wrapper">
-            <table className="data-table">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Phone</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {students.map((stu) => (
-                        <tr
-                            key={stu.student_id}
-                            className="table-row-clickable"
-                            onClick={() => router.push(`/students/${stu.student_id}`)}
-                        >
-                            <td>{stu.person.name}</td>
-                            <td>{stu.person.email || "--"}</td>
-                            <td>{stu.person.phone || "--"}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
+        <DataTable
+            loading={false}
+            error={null}
+            data={students}
+            emptyMessage="No students linked to this client."
+            getKey={(stu) => stu.student_id}
+            onRowClick={(stu) => router.push(`/students/${stu.student_id}`)}
+            columns={[
+                { header: "Name", render: (stu) => stu.person.name },
+                { header: "Email", render: (stu) => stu.person.email || "--" },
+                { header: "Phone", render: (stu) => stu.person.phone || "--" },
+            ]}
+        />
     );
 }

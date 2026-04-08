@@ -25,10 +25,11 @@ export async function listPayments(
 }
 
 export async function createPayment(data: {
-    invoice_id: number;
+    invoice_id: string;
     amount: number;
     payment_method?: string;
     notes?: string;
+    paid_on?: string;
 }): Promise<Payment> {
     const res = await apiFetch("/api/payments", {
         method: "POST",

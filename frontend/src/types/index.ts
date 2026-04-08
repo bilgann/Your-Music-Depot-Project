@@ -30,14 +30,17 @@ export interface DropdownOption {
 
 export type Lesson = {
   lesson_id: string
+    course_id?: string | null
   instructor_id: string
   student_id?: string | null
+    student_ids?: string[]
   room_id: string
   start_time: string
   end_time: string
   rate?: number | null
   status?: string | null
   recurrence?: string | null
+  instrument?: { name: string; family: string } | null
 }
 
 export type Instructor = {

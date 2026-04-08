@@ -8,11 +8,11 @@ class LessonStatus:
     """Valid states a lesson can be in."""
     value: str
 
-    SCHEDULED = "scheduled"
-    COMPLETED = "completed"
-    CANCELLED = "cancelled"
+    SCHEDULED = "Scheduled"
+    COMPLETED = "Completed"
+    CANCELLED = "Cancelled"
 
-    VALID: frozenset = frozenset({"scheduled", "completed", "cancelled"})
+    VALID: frozenset = frozenset({"Scheduled", "Completed", "Cancelled", "Rescheduled"})
 
     def __post_init__(self):
         if self.value not in self.VALID:

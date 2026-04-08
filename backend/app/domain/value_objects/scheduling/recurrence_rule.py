@@ -3,6 +3,9 @@ from dataclasses import dataclass
 from backend.app.domain.exceptions.exceptions import ValidationError
 
 
+_VALID_RECURRENCE_TYPES: frozenset = frozenset({"one_time", "cron"})
+
+
 @dataclass(frozen=True)
 class RecurrenceRule:
     """Describes when a lesson occurs — either a one-time date or a cron schedule.
@@ -19,18 +22,16 @@ class RecurrenceRule:
         RecurrenceRule.cron("0 14 1 * *")           # 1st of every month at 14:00
     """
 
-    VALID_TYPES: frozenset = frozenset({"one_time", "cron"})
-
     rule_type: str
     value: str
 
     def __post_init__(self):
-        if self.rule_type not in self.VALID_TYPES:
+        if self.rule_type not in _VALID_RECURRENCE_TYPES:
             raise ValidationError([{
                 "field": "recurrence",
                 "message": (
                     f"Invalid recurrence type '{self.rule_type}'. "
-                    f"Must be one of: {', '.join(sorted(self.VALID_TYPES))}."
+                    f"Must be one of: {', '.join(sorted(_VALID_RECURRENCE_TYPES))}."
                 ),
             }])
         if not self.value or not self.value.strip():

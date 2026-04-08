@@ -1,25 +1,41 @@
 import { useState } from "react";
 import { createInstructor, updateInstructor, deleteInstructor } from "@/features/instructors/api/instructor";
-import type { Instructor } from "@/features/instructors/api/instructor";
+import type { Instructor, TeachingRestriction } from "@/features/instructors/api/instructor";
+import { useToast } from "@/components/ui/toast";
 
-type FormState = { name: string; email: string; phone: string };
-const emptyForm: FormState = { name: "", email: "", phone: "" };
+export type InstructorFormState = { name: string; email: string; phone: string; restrictions: TeachingRestriction[] };
+const emptyForm: InstructorFormState = { name: "", email: "", phone: "", restrictions: [] };
+
+function toInstructorForm(inst?: Instructor | null): InstructorFormState {
+    if (!inst) return emptyForm;
+
+    return {
+        name: typeof inst.name === "string" ? inst.name : "",
+        email: typeof inst.email === "string" ? inst.email : "",
+        phone: typeof inst.phone === "string" ? inst.phone : "",
+        restrictions: (inst.restrictions ?? []).map((restriction) => ({
+            requirement_type: restriction.requirement_type,
+            value: typeof restriction.value === "string" ? restriction.value : String(restriction.value ?? ""),
+        })),
+    };
+}
 
 export function useInstructorCrud(refresh: () => Promise<void>) {
+    const { toast } = useToast();
     const [showModal, setShowModal] = useState(false);
     const [editing, setEditing] = useState<Instructor | null>(null);
-    const [form, setForm] = useState<FormState>(emptyForm);
+    const [form, setForm] = useState<InstructorFormState>(emptyForm);
     const [saving, setSaving] = useState(false);
 
     function openAdd() {
         setEditing(null);
-        setForm(emptyForm);
+        setForm(toInstructorForm());
         setShowModal(true);
     }
 
     function openEdit(inst: Instructor) {
         setEditing(inst);
-        setForm({ name: inst.name, email: inst.email ?? "", phone: inst.phone ?? "" });
+        setForm(toInstructorForm(inst));
         setShowModal(true);
     }
 
@@ -27,18 +43,25 @@ export function useInstructorCrud(refresh: () => Promise<void>) {
         e.preventDefault();
         setSaving(true);
         try {
-            const payload = { name: form.name, ...(form.email && { email: form.email }), ...(form.phone && { phone: form.phone }) };
+            const cleanRestrictions = form.restrictions.filter((r) => r.value !== "");
+            const payload = {
+                name: form.name,
+                ...(form.email && { email: form.email }),
+                ...(form.phone && { phone: form.phone }),
+                ...(cleanRestrictions.length > 0 && { restrictions: cleanRestrictions }),
+            };
             if (editing) { await updateInstructor(editing.instructor_id, payload); } else { await createInstructor(payload); }
             setShowModal(false);
+            toast(editing ? "Instructor updated." : "Instructor created.", "success");
             await refresh();
-        } catch { alert("Failed to save instructor."); }
+        } catch { toast("Failed to save instructor.", "error"); }
         finally { setSaving(false); }
     }
 
     async function handleDelete(inst: Instructor) {
         if (!confirm("Delete this instructor?")) return;
-        try { await deleteInstructor(inst.instructor_id); await refresh(); }
-        catch { alert("Failed to delete instructor."); }
+        try { await deleteInstructor(inst.instructor_id); toast("Instructor deleted.", "success"); await refresh(); }
+        catch { toast("Failed to delete instructor.", "error"); }
     }
 
     return { showModal, setShowModal, editing, form, setForm, saving, openAdd, openEdit, handleSubmit, handleDelete };

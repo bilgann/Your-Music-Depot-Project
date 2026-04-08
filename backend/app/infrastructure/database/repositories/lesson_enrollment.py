@@ -5,12 +5,12 @@ from backend.app.infrastructure.database.database import DatabaseConnection
 
 class LessonEnrollment:
     @staticmethod
-    def get_by_lesson(lesson_id):
+    def get_by_occurrence(occurrence_id):
         return (
             DatabaseConnection().client
             .table("lesson_enrollment")
             .select("*, student(*)")
-            .eq("lesson_id", lesson_id)
+            .eq("occurrence_id", occurrence_id)
             .execute()
             .data
         )
@@ -20,54 +20,65 @@ class LessonEnrollment:
         return (
             DatabaseConnection().client
             .table("lesson_enrollment")
-            .select("*, lesson(*, instructor(*), room(*))")
+            .select("*, lesson_occurrence(*, lesson(*), course(*), instructor(*, person(name)), room(name))")
             .eq("student_id", student_id)
             .execute()
             .data
         )
 
     @staticmethod
-    def get(lesson_id, student_id):
+    def get(occurrence_id, student_id):
         return (
             DatabaseConnection().client
             .table("lesson_enrollment")
             .select("*")
-            .eq("lesson_id", lesson_id)
+            .eq("occurrence_id", occurrence_id)
             .eq("student_id", student_id)
             .execute()
             .data
         )
 
     @staticmethod
-    def create(lesson_id, student_id):
+    def create(occurrence_id, student_id):
         return (
             DatabaseConnection().client
             .table("lesson_enrollment")
-            .insert({"lesson_id": lesson_id, "student_id": student_id})
+            .insert({"occurrence_id": occurrence_id, "student_id": student_id})
             .execute()
             .data
         )
 
     @staticmethod
-    def record_attendance(lesson_id, student_id, status):
+    def record_attendance(occurrence_id, student_id, status):
         return (
             DatabaseConnection().client
             .table("lesson_enrollment")
             .update({"attendance_status": status})
-            .eq("lesson_id", lesson_id)
+            .eq("occurrence_id", occurrence_id)
             .eq("student_id", student_id)
             .execute()
             .data
         )
 
     @staticmethod
-    def delete(lesson_id, student_id):
+    def delete(occurrence_id, student_id):
         return (
             DatabaseConnection().client
             .table("lesson_enrollment")
             .delete()
-            .eq("lesson_id", lesson_id)
+            .eq("occurrence_id", occurrence_id)
             .eq("student_id", student_id)
+            .execute()
+            .data
+        )
+
+    @staticmethod
+    def delete_by_occurrence(occurrence_id):
+        return (
+            DatabaseConnection().client
+            .table("lesson_enrollment")
+            .delete()
+            .eq("occurrence_id", occurrence_id)
             .execute()
             .data
         )

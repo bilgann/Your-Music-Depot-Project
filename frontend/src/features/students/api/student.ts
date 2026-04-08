@@ -1,9 +1,23 @@
 import { apiFetch, apiJsonPaged } from "@/lib/api";
 
+export type TeachingRequirement = {
+    requirement_type: "credential" | "min_student_age" | "max_student_age";
+    value: string;
+};
+
+export type InstrumentSkillLevel = {
+    name: string;
+    family: string;
+    skill_level: string;
+};
+
 export type Student = {
     student_id: string;
     person_id: string;
     client_id: string | null;
+    age?: number | null;
+    instrument_skill_levels?: InstrumentSkillLevel[];
+    requirements?: TeachingRequirement[];
     person: {
         person_id: string;
         name: string;
@@ -33,7 +47,15 @@ export async function listStudents(
     return apiJsonPaged<Student>(`/api/students?${params}`);
 }
 
-export async function createStudent(data: { name: string; email?: string; phone?: string; client_id?: string }): Promise<Student> {
+export async function createStudent(data: {
+    name: string;
+    email?: string;
+    phone?: string;
+    client_id?: string;
+    age?: number;
+    instrument_skill_levels?: InstrumentSkillLevel[];
+    requirements?: TeachingRequirement[];
+}): Promise<Student> {
     const res = await apiFetch("/api/students", {
         method: "POST",
         body: JSON.stringify(data),
@@ -43,7 +65,15 @@ export async function createStudent(data: { name: string; email?: string; phone?
     return body.data;
 }
 
-export async function updateStudent(studentId: string, data: { name?: string; email?: string; phone?: string; client_id?: string }): Promise<Student> {
+export async function updateStudent(studentId: string, data: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    client_id?: string;
+    age?: number;
+    instrument_skill_levels?: InstrumentSkillLevel[];
+    requirements?: TeachingRequirement[];
+}): Promise<Student> {
     const res = await apiFetch(`/api/students/${studentId}`, {
         method: "PUT",
         body: JSON.stringify(data),
@@ -92,6 +122,17 @@ export async function getStudentById(studentId: string): Promise<Student> {
 export async function getStudentLessons(studentId: string): Promise<StudentEnrollment[]> {
     const res = await apiFetch(`/api/students/${studentId}/lessons`);
     if (!res.ok) throw new Error(`Failed to fetch student lessons: ${res.statusText}`);
+    const body = await res.json();
+    return body.data ?? [];
+}
+
+export async function getStudentTimetable(
+    studentId: string, start: string, end: string
+): Promise<StudentEnrollment[]> {
+    const res = await apiFetch(
+        `/api/students/${studentId}/timetable?start=${start}&end=${end}`
+    );
+    if (!res.ok) throw new Error(`Failed to fetch timetable: ${res.statusText}`);
     const body = await res.json();
     return body.data ?? [];
 }

@@ -1,11 +1,13 @@
 'use client'
 
 import React, { useEffect, useState, useMemo, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { faPencil, faTrash, faCheck, faXmark, faChevronLeft, faChevronRight, faPlus } from '@fortawesome/free-solid-svg-icons'
-import { Lesson } from '../../../types/index'
-import { getLessons, deleteLesson } from '../api/lesson'
+import { getOccurrencesInRange, deleteLesson } from '../api/lesson'
+import type { CalendarEvent } from '../api/lesson'
 import Button from '@/components/ui/button'
 import ScheduleLessonModal from './schedule_lesson_modal'
+import { useToast } from '@/components/ui/toast'
 
 type CalendarView = 'month' | 'week' | 'day'
 
@@ -13,20 +15,21 @@ const WEEK_DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 const MONTH_DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
-function parseISODateToLocal(dstr: string) {
-  if (!dstr) return new Date(dstr)
-  try {
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dstr)) {
-      const parts = dstr.split('-').map(p => Number(p))
-      return new Date(parts[0], parts[1] - 1, parts[2])
-    }
-    const m = dstr.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2}):(\d{2})/)
-    if (m) {
-      const y = Number(m[1]), mo = Number(m[2]), da = Number(m[3])
-      const hh = Number(m[4]), mm = Number(m[5]), ss = Number(m[6])
-      return new Date(y, mo - 1, da, hh, mm, ss)
-    }
-  } catch (e) { /* fallback */ }
+function parseDateTime(dstr: string): Date {
+  if (!dstr) return new Date(NaN)
+  // YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dstr)) {
+    const [y, m, d] = dstr.split('-').map(Number)
+    return new Date(y, m - 1, d)
+  }
+  // YYYY-MM-DDTHH:MM or YYYY-MM-DDTHH:MM:SS
+  const match = dstr.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/)
+  if (match) {
+    return new Date(
+      Number(match[1]), Number(match[2]) - 1, Number(match[3]),
+      Number(match[4]), Number(match[5]), Number(match[6] ?? 0)
+    )
+  }
   return new Date(dstr)
 }
 
@@ -84,17 +87,18 @@ interface LessonCalendarProps {
 }
 
 const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonCreated }) => {
+  const { toast } = useToast()
+  const router = useRouter()
   const [view, setView] = useState<CalendarView>('week')
   const [cursor, setCursor] = useState<Date>(startOfWeek(new Date()))
-  const [lessons, setLessons] = useState<Lesson[]>([])
+  const [events, setEvents] = useState<CalendarEvent[]>([])
   const [showModal, setShowModal] = useState(false)
   const [calendarEditMode, setCalendarEditMode] = useState(false)
-  const [editingLesson, setEditingLesson] = useState<Lesson | null>(null)
   const panelRef = useRef<HTMLDivElement | null>(null)
   const [rowHeightPx, setRowHeightPx] = useState<number>(54)
   const [rowGapPx, setRowGapPx] = useState<number>(0)
 
-  async function fetchLessons() {
+  async function fetchEvents() {
     let start: string, end: string
     if (view === 'month') {
       const first = startOfMonth(cursor)
@@ -110,15 +114,14 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
     }
 
     try {
-      const data = await getLessons(start, end)
-      console.debug('[LessonCalendar] fetched lessons count=', Array.isArray(data) ? data.length : 0)
-      setLessons(data)
+      const data = await getOccurrencesInRange(start, end)
+      setEvents(data)
     } catch (error) {
-      console.error('[LessonCalendar] Error fetching lessons:', error)
+      console.error('[LessonCalendar] Error fetching occurrences:', error)
     }
   }
 
-  useEffect(() => { fetchLessons() }, [cursor, view])
+  useEffect(() => { fetchEvents() }, [cursor, view])
 
   useEffect(() => {
     if (onWeekChange) onWeekChange(cursor)
@@ -157,30 +160,29 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
   const layoutMap = useMemo(() => {
     if (view === 'month') return {}
     const map: Record<string, { col: number, total: number }> = {}
-    const dayLessons: Lesson[][] = viewDays.map(() => [])
+    const dayEvents: CalendarEvent[][] = viewDays.map(() => [])
 
-    for (const lesson of lessons) {
-      const ld = parseISODateToLocal(lesson.start_time)
+    for (const ev of events) {
+      const ld = parseDateTime(ev.start_time)
       for (let i = 0; i < viewDays.length; i++) {
         if (sameDay(ld, viewDays[i])) {
-          dayLessons[i].push(lesson)
+          dayEvents[i].push(ev)
           break
         }
       }
     }
 
     for (let dayIdx = 0; dayIdx < viewDays.length; dayIdx++) {
-      const evs = dayLessons[dayIdx].map(lesson => {
-        const start = lesson.start_time ? new Date(lesson.start_time) : null
-        const end = lesson.end_time ? new Date(lesson.end_time) : null
-        const defaultStart = 9
-        const sHour = start ? start.getHours() : defaultStart
-        const sMin = start ? start.getMinutes() : 0
-        const eHour = end ? end.getHours() : (sHour + 1)
-        const eMin = end ? end.getMinutes() : 0
+      const evs = dayEvents[dayIdx].map(ev => {
+        const start = parseDateTime(ev.start_time)
+        const end = parseDateTime(ev.end_time)
+        const sHour = isNaN(start.getTime()) ? 9 : start.getHours()
+        const sMin = isNaN(start.getTime()) ? 0 : start.getMinutes()
+        const eHour = isNaN(end.getTime()) ? (sHour + 1) : end.getHours()
+        const eMin = isNaN(end.getTime()) ? 0 : end.getMinutes()
         const startTotal = sHour + sMin / 60
         const endTotal = eHour + eMin / 60
-        return { lesson, startTotal, endTotal }
+        return { ev, startTotal, endTotal }
       }).sort((a, b) => a.startTotal - b.startTotal)
 
       const columnsEnd: number[] = []
@@ -188,7 +190,7 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
         let placed = false
         for (let ci = 0; ci < columnsEnd.length; ci++) {
           if (columnsEnd[ci] <= item.startTotal) {
-            map[item.lesson.lesson_id] = { col: ci, total: 0 }
+            map[item.ev.id] = { col: ci, total: 0 }
             columnsEnd[ci] = item.endTotal
             placed = true
             break
@@ -196,17 +198,17 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
         }
         if (!placed) {
           columnsEnd.push(item.endTotal)
-          map[item.lesson.lesson_id] = { col: columnsEnd.length - 1, total: 0 }
+          map[item.ev.id] = { col: columnsEnd.length - 1, total: 0 }
         }
       }
       const totalCols = columnsEnd.length || 1
       for (const item of evs) {
-        if (map[item.lesson.lesson_id]) map[item.lesson.lesson_id].total = totalCols
+        if (map[item.ev.id]) map[item.ev.id].total = totalCols
       }
     }
 
     return map
-  }, [lessons, viewDays, view])
+  }, [events, viewDays, view])
 
   function prev() {
     if (view === 'month') {
@@ -247,29 +249,16 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
 
   const hours = Array.from({ length: 11 }).map((_, i) => 8 + i)
 
-  async function handleDeleteLesson(lessonId: string) {
-    if (!confirm('Delete this lesson?')) return
-    try {
-      await deleteLesson(lessonId)
-      await fetchLessons()
-      if (onLessonCreated) onLessonCreated()
-    } catch (error) {
-      console.error('[LessonCalendar] Delete error:', error)
-      alert('Failed to delete lesson')
-    }
-  }
+  function renderEventBlock(ev: CalendarEvent, dayIdx: number) {
+    const start = parseDateTime(ev.start_time)
+    const end = parseDateTime(ev.end_time)
+    const sHour = isNaN(start.getTime()) ? 9 : start.getHours()
+    const sMin = isNaN(start.getTime()) ? 0 : start.getMinutes()
+    const eHour = isNaN(end.getTime()) ? (sHour + 1) : end.getHours()
+    const eMin = isNaN(end.getTime()) ? 0 : end.getMinutes()
 
-  function renderLessonBlock(lesson: Lesson, dayIdx: number) {
-    const start = lesson.start_time ? new Date(lesson.start_time) : null
-    const end = lesson.end_time ? new Date(lesson.end_time) : null
-    const defaultStart = 9
-    const sHour = start ? start.getHours() : defaultStart
-    const sMin = start ? start.getMinutes() : 0
-    const eHour = end ? end.getHours() : (sHour + 1)
-    const eMin = end ? end.getMinutes() : 0
-
-    const startTotalHours = (sHour + sMin / 60)
-    const endTotalHours = (eHour + eMin / 60)
+    const startTotalHours = sHour + sMin / 60
+    const endTotalHours = eHour + eMin / 60
     const visibleStart = 8
     const visibleEnd = 18
 
@@ -283,10 +272,10 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
     const top = (clampedStart - visibleStart) * totalSlotHeight
     const height = durationHours * totalSlotHeight - rowGapPx
 
-    const bg = getStatusColor(lesson.status)
+    const bg = getStatusColor(ev.status)
     const textColor = getTextColor(bg)
 
-    const layout = layoutMap[lesson.lesson_id] || null
+    const layout = layoutMap[ev.id] || null
     const style: React.CSSProperties = {
       top: `${top}px`,
       height: `${height}px`,
@@ -313,25 +302,24 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
       style.right = '4px'
     }
 
-    const timeLabel = start
-      ? `${start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}${end ? ' - ' + end.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''}`
+    const timeLabel = !isNaN(start.getTime())
+      ? `${start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}${!isNaN(end.getTime()) ? ' - ' + end.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''}`
       : ''
+
+    const detailUrl = ev.lesson_id ? `/scheduling/${ev.lesson_id}` : null
 
     return (
       <div
-        key={lesson.lesson_id}
+        key={ev.id}
         className={`ac-event ac-event-${dayIdx}`}
         style={style}
-        title={`${lesson.status ?? 'Lesson'} — ${timeLabel}`}
+        title={`${ev.status ?? 'Lesson'} — ${timeLabel}`}
+        onClick={() => {
+          if (!calendarEditMode && detailUrl) router.push(detailUrl)
+        }}
       >
-        {calendarEditMode && (
-          <div className="event-btns-wrapper" style={{ position: 'absolute', top: 6, right: 6, zIndex: 60 }} onClick={(e) => e.stopPropagation()}>
-            <Button variant="event-edit"   icon={faPencil} onClick={() => { setEditingLesson(lesson); setShowModal(true) }} title="Edit lesson" />
-            <Button variant="event-delete" icon={faTrash}  onClick={() => handleDeleteLesson(lesson.lesson_id)} title="Delete lesson" />
-          </div>
-        )}
         <div className="ac-event-name" style={{ fontWeight: 'bold' }}>
-          {lesson.status ?? 'Lesson'}
+          {ev.status ?? 'Lesson'}
         </div>
         <div className="ac-event-time" style={{ fontSize: '0.8rem', marginTop: 4 }}>
           {timeLabel}
@@ -375,10 +363,10 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
                   {hours.map(h => (
                     <div key={h} className="slot-cell" data-hour={h}></div>
                   ))}
-                  {lessons.filter(lesson => {
-                    const ld = parseISODateToLocal(lesson.start_time)
+                  {events.filter(ev => {
+                    const ld = parseDateTime(ev.start_time)
                     return sameDay(ld, d)
-                  }).map(lesson => renderLessonBlock(lesson, dayIdx))}
+                  }).map(ev => renderEventBlock(ev, dayIdx))}
                 </div>
               </div>
             ))}
@@ -393,7 +381,6 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
     const month = cursor.getMonth()
     const firstDay = new Date(year, month, 1)
 
-    // Build grid starting from the Sunday on or before the first of the month
     const gridStart = new Date(firstDay)
     gridStart.setDate(gridStart.getDate() - gridStart.getDay())
 
@@ -407,12 +394,11 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
 
     const today = new Date()
 
-    const lessonsByDay: Record<string, Lesson[]> = {}
-    for (const lesson of lessons) {
-      const ld = parseISODateToLocal(lesson.start_time)
-      const key = formatDateLocal(ld)
-      if (!lessonsByDay[key]) lessonsByDay[key] = []
-      lessonsByDay[key].push(lesson)
+    const eventsByDay: Record<string, CalendarEvent[]> = {}
+    for (const ev of events) {
+      const key = ev.date || formatDateLocal(parseDateTime(ev.start_time))
+      if (!eventsByDay[key]) eventsByDay[key] = []
+      eventsByDay[key].push(ev)
     }
 
     return (
@@ -434,7 +420,7 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
             const isCurrentMonth = d.getMonth() === month
             const isToday = sameDay(d, today)
             const key = formatDateLocal(d)
-            const dayLessons = lessonsByDay[key] || []
+            const dayEvents = eventsByDay[key] || []
             return (
               <div
                 key={i}
@@ -446,24 +432,26 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
               >
                 <div className="month-day-num">{d.getDate()}</div>
                 <div className="month-chips">
-                  {dayLessons.slice(0, 3).map(lesson => {
-                    const bg = getStatusColor(lesson.status)
+                  {dayEvents.slice(0, 3).map(ev => {
+                    const bg = getStatusColor(ev.status)
                     const textColor = getTextColor(bg)
-                    const start = lesson.start_time ? new Date(lesson.start_time) : null
-                    const timeStr = start ? start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''
+                    const start = parseDateTime(ev.start_time)
+                    const timeStr = !isNaN(start.getTime()) ? start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''
+                    const detailUrl = ev.lesson_id ? `/scheduling/${ev.lesson_id}` : null
                     return (
                       <div
-                        key={lesson.lesson_id}
+                        key={ev.id}
                         className="month-chip"
                         style={{ background: bg, color: textColor }}
-                        title={`${lesson.status ?? 'Lesson'} ${timeStr}`}
+                        title={`${ev.status ?? 'Lesson'} ${timeStr}`}
+                        onClick={() => { if (detailUrl) router.push(detailUrl) }}
                       >
-                        {timeStr} {lesson.status ?? 'Lesson'}
+                        {timeStr} {ev.status ?? 'Lesson'}
                       </div>
                     )
                   })}
-                  {dayLessons.length > 3 && (
-                    <div className="month-chip-more">+{dayLessons.length - 3} more</div>
+                  {dayEvents.length > 3 && (
+                    <div className="month-chip-more">+{dayEvents.length - 3} more</div>
                   )}
                 </div>
               </div>
@@ -503,7 +491,7 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
               <Button variant="cal-cancel" icon={faXmark}  onClick={() => setCalendarEditMode(false)} title="Cancel" />
             </div>
           )}
-          <Button variant="primary" icon={faPlus} onClick={() => { setEditingLesson(null); setShowModal(true) }}>New Lesson</Button>
+          <Button variant="primary" icon={faPlus} onClick={() => setShowModal(true)}>New Lesson</Button>
         </div>
       </div>
 
@@ -516,16 +504,14 @@ const LessonCalendar: React.FC<LessonCalendarProps> = ({ onWeekChange, onLessonC
 
       {showModal && (
         <ScheduleLessonModal
-          existingLesson={editingLesson || undefined}
           onSaved={() => {
-            fetchLessons().then(() => {
+            fetchEvents().then(() => {
               if (onLessonCreated) onLessonCreated()
             })
           }}
           onClose={() => {
             setShowModal(false)
-            setEditingLesson(null)
-            fetchLessons().then(() => {
+            fetchEvents().then(() => {
               if (onLessonCreated) onLessonCreated()
             })
           }}

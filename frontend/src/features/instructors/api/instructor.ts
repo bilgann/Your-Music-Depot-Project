@@ -1,10 +1,16 @@
 import { apiFetch, apiJsonPaged } from "@/lib/api";
 
+export type TeachingRestriction = {
+    requirement_type: "min_student_age" | "max_student_age";
+    value: string;
+};
+
 export type Instructor = {
     instructor_id: string;
     name: string;
     email: string | null;
     phone: string | null;
+    restrictions?: TeachingRestriction[];
 };
 
 export async function getInstructors(): Promise<Instructor[]> {
@@ -24,7 +30,7 @@ export async function listInstructors(
     return apiJsonPaged<Instructor>(`/api/instructors?${params}`);
 }
 
-export async function createInstructor(data: { name: string; email?: string; phone?: string }): Promise<Instructor> {
+export async function createInstructor(data: { name: string; email?: string; phone?: string; restrictions?: TeachingRestriction[] }): Promise<Instructor> {
     const res = await apiFetch("/api/instructors", {
         method: "POST",
         body: JSON.stringify(data),
@@ -34,7 +40,7 @@ export async function createInstructor(data: { name: string; email?: string; pho
     return body.data;
 }
 
-export async function updateInstructor(instructorId: string, data: { name?: string; email?: string; phone?: string }): Promise<Instructor> {
+export async function updateInstructor(instructorId: string, data: { name?: string; email?: string; phone?: string; restrictions?: TeachingRestriction[] }): Promise<Instructor> {
     const res = await apiFetch(`/api/instructors/${instructorId}`, {
         method: "PUT",
         body: JSON.stringify(data),

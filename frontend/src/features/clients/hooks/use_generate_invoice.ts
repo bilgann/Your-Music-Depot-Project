@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { generateInvoice } from "@/features/invoices/api/invoice";
+import { useToast } from "@/components/ui/toast";
 import type { ClientStudent } from "@/features/clients/api/client";
 
 type FormState = { student_id: string; year: string; month: string };
@@ -10,6 +11,7 @@ function defaultForm(): FormState {
 }
 
 export function useGenerateInvoice(students: ClientStudent[], refresh: () => Promise<void>) {
+    const { toast } = useToast();
     const [showModal, setShowModal] = useState(false);
     const [form, setForm] = useState<FormState>(defaultForm);
     const [saving, setSaving] = useState(false);
@@ -31,7 +33,7 @@ export function useGenerateInvoice(students: ClientStudent[], refresh: () => Pro
             setShowModal(false);
             await refresh();
         } catch (err: unknown) {
-            alert(err instanceof Error ? err.message : "Failed to generate invoice.");
+            toast(err instanceof Error ? err.message : "Failed to generate invoice.", "error");
         }
         finally { setSaving(false); }
     }

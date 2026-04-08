@@ -1,15 +1,2 @@
-alter table app_user           disable row level security;
-alter table person             disable row level security;
-alter table instructor         disable row level security;
-alter table room               disable row level security;
-alter table skill              disable row level security;
-alter table attendance_policy  disable row level security;
-alter table client             disable row level security;
-alter table student            disable row level security;
-alter table lesson             disable row level security;
-alter table lesson_enrollment  disable row level security;
-alter table invoice            disable row level security;
-alter table invoice_line       disable row level security;
-alter table payment            disable row level security;
-alter table credit_transaction disable row level security;
-alter table audit_log          disable row level security;
+-- RLS is disabled in 20260329000000_initial_schema.sql.
+-- This file is intentionally empty.

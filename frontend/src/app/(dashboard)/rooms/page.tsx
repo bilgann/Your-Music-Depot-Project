@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/ui/navbar";
 import DataTable from "@/components/ui/data_table";
 import Modal from "@/components/ui/modal";
@@ -9,6 +10,7 @@ import { useRooms } from "@/features/rooms/hooks/use_rooms";
 import { useRoomCrud } from "@/features/rooms/hooks/use_room_crud";
 
 export default function RoomsPage() {
+    const router = useRouter();
     const { rooms, loading, error, refresh, page, setPage, search, setSearch, pageCount } = useRooms();
     const { showModal, setShowModal, editing, form, setForm, saving, openAdd, openEdit, handleSubmit, handleDelete } = useRoomCrud(refresh);
 
@@ -29,6 +31,7 @@ export default function RoomsPage() {
                     { header: "Name",     render: (room) => room.name },
                     { header: "Capacity", render: (room) => room.capacity ?? "--" },
                 ]}
+                onRowClick={(room) => router.push(`/rooms/${room.room_id}`)}
                 onEdit={openEdit} onDelete={handleDelete}
                 page={page} pageCount={pageCount} onPageChange={setPage}
             />

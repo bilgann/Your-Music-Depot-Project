@@ -7,14 +7,14 @@ from backend.app.infrastructure.database.database import DatabaseConnection
 class Instructor:
     @staticmethod
     def get_all():
-        return DatabaseConnection().client.table("instructor").select("*").execute().data
+        return DatabaseConnection().client.table("instructor").select("*, person(*)").execute().data
 
     @staticmethod
     def list(page: int = 1, page_size: int = 20, search: str = None):
         offset = (page - 1) * page_size
-        q = DatabaseConnection().client.table("instructor").select("*", count="exact")
-        if search:
-            q = q.ilike("name", f"%{search}%")
+        # Join person so callers get full name/contact data.
+        # Name-based search is not supported here — instructor has no name column.
+        q = DatabaseConnection().client.table("instructor").select("*, person(*)", count="exact")
         result = q.range(offset, offset + page_size - 1).execute()
         return result.data, result.count
 
@@ -23,7 +23,7 @@ class Instructor:
         return (
             DatabaseConnection().client
             .table("instructor")
-            .select("*")
+            .select("*, person(*)")
             .eq("instructor_id", instructor_id)
             .execute()
             .data

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { listPayments } from "@/features/payments/api/payment";
 import type { Payment } from "@/features/payments/api/payment";
 
@@ -9,6 +9,7 @@ export function usePayments() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(1);
+    const [search, setSearchRaw] = useState("");
     const [total, setTotal] = useState(0);
 
     const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -29,5 +30,21 @@ export function usePayments() {
 
     useEffect(() => { refresh(); }, [refresh]);
 
-    return { payments, loading, error, refresh, page, setPage, total, pageCount };
+    function setSearch(s: string) {
+        setSearchRaw(s);
+        setPage(1);
+    }
+
+    const filtered = useMemo(() => {
+        if (!search) return payments;
+        const q = search.toLowerCase();
+        return payments.filter(
+            (p) =>
+                p.invoice_id?.toLowerCase().includes(q) ||
+                p.payment_method?.toLowerCase().includes(q) ||
+                p.notes?.toLowerCase().includes(q)
+        );
+    }, [payments, search]);
+
+    return { payments: filtered, loading, error, refresh, page, setPage, search, setSearch, total, pageCount };
 }

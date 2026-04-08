@@ -10,6 +10,8 @@ from backend.app.domain.value_objects.scheduling.recurrence_rule import Recurren
 _BLOCK_TYPES: frozenset[str] = frozenset({
     "holiday",
     "weekend",
+    "work",
+    "school",
     "vacation",
     "personal",
     "other",

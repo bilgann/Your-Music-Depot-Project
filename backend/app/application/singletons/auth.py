@@ -5,6 +5,7 @@ from typing import Optional
 import jwt
 
 from backend.app.common.logging import LayerLogger
+from backend.app.domain.entities.user import UserEntity
 from backend.app.infrastructure.database.repositories import User
 
 _INACTIVITY_LIMIT = datetime.timedelta(minutes=30)
@@ -33,7 +34,7 @@ class Auth:
         user = User.validate_user(username, password)
         if user:
             payload = {
-                "user_id": user.id,
+                "user_id": user.user_id,
                 "username": user.username,
                 "role": user.role,
                 "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1),
@@ -74,7 +75,7 @@ class Auth:
         try:
             payload = jwt.decode(token, self._secret_key, algorithms=[self._algorithm])
             self._last_active[token] = datetime.datetime.now(datetime.timezone.utc)
-            return User(payload["user_id"], payload["username"], role=payload.get("role", "admin"))
+            return UserEntity(payload["user_id"], payload["username"], role=payload.get("role", "admin"))
         except jwt.ExpiredSignatureError:
             self._logger.warning("Token expired.")
         except jwt.InvalidTokenError:

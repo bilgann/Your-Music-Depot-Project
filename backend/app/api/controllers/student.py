@@ -1,6 +1,6 @@
 from flask import Blueprint, g, request, jsonify
 
-from backend.app.api.middleware.auth import require_auth
+from backend.app.api.middleware.auth import require_admin, require_auth
 from backend.app.api.contracts.response import ResponseContract
 from backend.app.api.contracts.validation import error_response, validate
 import backend.app.application.services.student as svc
@@ -35,13 +35,13 @@ def get_student(student_id):
 
 
 @student_bp.route("", methods=["POST"])
-@require_auth
+@require_admin
 def create_student():
     try:
         body = request.get_json()
         validate(body, "student")
         result = svc.create_student(body)
-        audit.log(g.user.id, "CREATE", "student",
+        audit.log(g.user.user_id, "CREATE", "student",
                   result[0].get("student_id") if result else None, None, body)
         return jsonify(ResponseContract(True, "Student created.", result).to_dict()), 201
     except Exception as e:
@@ -49,24 +49,24 @@ def create_student():
 
 
 @student_bp.route("/<student_id>", methods=["PUT"])
-@require_auth
+@require_admin
 def update_student(student_id):
     try:
         body = request.get_json()
         validate(body, "student", partial=True)
         result = svc.update_student(student_id, body)
-        audit.log(g.user.id, "UPDATE", "student", student_id, None, body)
+        audit.log(g.user.user_id, "UPDATE", "student", student_id, None, body)
         return jsonify(ResponseContract(True, "Student updated.", result).to_dict()), 200
     except Exception as e:
         return error_response(e)
 
 
 @student_bp.route("/<student_id>", methods=["DELETE"])
-@require_auth
+@require_admin
 def delete_student(student_id):
     try:
         svc.delete_student(student_id)
-        audit.log(g.user.id, "DELETE", "student", student_id)
+        audit.log(g.user.user_id, "DELETE", "student", student_id)
         return jsonify(ResponseContract(True, "Student deleted.").to_dict()), 200
     except Exception as e:
         return error_response(e)
@@ -77,6 +77,21 @@ def delete_student(student_id):
 def get_student_lessons(student_id):
     try:
         return jsonify(ResponseContract(True, "OK", svc.get_student_lessons(student_id)).to_dict()), 200
+    except Exception as e:
+        return error_response(e)
+
+
+@student_bp.route("/<student_id>/timetable", methods=["GET"])
+@require_auth
+def get_student_timetable(student_id):
+    """GET /api/students/<id>/timetable?start=YYYY-MM-DD&end=YYYY-MM-DD"""
+    try:
+        start = request.args.get("start", "")
+        end = request.args.get("end", "")
+        if not start or not end:
+            return jsonify(ResponseContract(False, "start and end query params required.").to_dict()), 400
+        data = svc.get_student_timetable(student_id, start, end)
+        return jsonify(ResponseContract(True, "OK", data).to_dict()), 200
     except Exception as e:
         return error_response(e)
 

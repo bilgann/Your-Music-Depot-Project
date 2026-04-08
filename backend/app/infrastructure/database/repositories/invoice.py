@@ -109,6 +109,11 @@ class Invoice:
 
     @staticmethod
     def create_line_items(line_items: list):
+        """
+        Bulk-insert invoice line items.
+        Each dict must include: invoice_id, description, amount, item_type.
+        lesson_id and attendance_status are optional (lesson items only).
+        """
         return (
             DatabaseConnection().client
             .table("invoice_line")

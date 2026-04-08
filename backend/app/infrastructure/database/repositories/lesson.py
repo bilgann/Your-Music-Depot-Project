@@ -25,7 +25,7 @@ class Lesson:
             .table("lesson")
             .select("*")
             .gte("start_time", start)
-            .lte("end_time", end)
+            .lte("start_time", end + "T23:59:59")
             .execute()
             .data
         )

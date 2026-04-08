@@ -12,6 +12,7 @@ from backend.app.domain.exceptions.exceptions import ConflictError, ValidationEr
 PG_FK_VIOLATION = "23503"
 PG_UNIQUE_VIOLATION = "23505"
 PG_NOT_NULL_VIOLATION = "23502"
+PG_CHECK_VIOLATION = "23514"
 
 # ── Fallback messages ─────────────────────────────────────────────────────────
 
@@ -33,4 +34,6 @@ def parse_db_error(exc: Exception) -> Exception:
         return ConflictError(_MSG_UNIQUE)
     if PG_NOT_NULL_VIOLATION in msg or "not-null" in msg or "not null" in msg:
         return ValidationError([{"field": "_body", "message": _MSG_NOT_NULL}])
+    if PG_CHECK_VIOLATION in msg or "check" in msg and "violat" in msg:
+        return ValidationError([{"field": "_body", "message": "A value violates a database constraint."}])
     return exc

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/ui/navbar";
 import DataTable from "@/components/ui/data_table";
 import Modal from "@/components/ui/modal";
@@ -21,7 +22,8 @@ function formatDate(iso: string | null) {
 }
 
 export default function PaymentsPage() {
-    const { payments, loading, error, refresh, page, setPage, pageCount } = usePayments();
+    const router = useRouter();
+    const { payments, loading, error, refresh, page, setPage, search, setSearch, pageCount } = usePayments();
     const { showModal, setShowModal, form, setForm, saving, openAdd, handleSubmit, handleDelete } = usePaymentCrud(refresh);
 
     return (
@@ -29,6 +31,8 @@ export default function PaymentsPage() {
             <Navbar
                 title="Payments"
                 className="page-payments"
+                search={search}
+                onSearchChange={setSearch}
                 actions={<Button variant="primary" onClick={openAdd}>+ Record Payment</Button>}
             />
             <DataTable
@@ -43,6 +47,7 @@ export default function PaymentsPage() {
                     { header: "Paid On", render: (p) => formatDate(p.paid_on) },
                     { header: "Notes", render: (p) => p.notes || "--" },
                 ]}
+                onRowClick={(p) => router.push(`/invoices/${p.invoice_id}`)}
                 onDelete={handleDelete}
                 page={page} pageCount={pageCount} onPageChange={setPage}
             />
