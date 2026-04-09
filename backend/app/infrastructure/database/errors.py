@@ -9,16 +9,21 @@ from backend.app.domain.exceptions.exceptions import ConflictError, ValidationEr
 
 # ── PostgreSQL error codes ────────────────────────────────────────────────────
 
-PG_FK_VIOLATION = "23503"
-PG_UNIQUE_VIOLATION = "23505"
+PG_FK_VIOLATION      = "23503"
+PG_UNIQUE_VIOLATION  = "23505"
 PG_NOT_NULL_VIOLATION = "23502"
-PG_CHECK_VIOLATION = "23514"
+PG_CHECK_VIOLATION   = "23514"
+PG_INVALID_SYNTAX    = "22p02"   # invalid input syntax (e.g. bad UUID)
+PG_UNDEFINED_COLUMN  = "42703"   # column does not exist
+PG_UNDEFINED_TABLE   = "42p01"   # table does not exist
 
 # ── Fallback messages ─────────────────────────────────────────────────────────
 
-_MSG_FK = "Cannot complete this operation: a related record still exists or is required."
-_MSG_UNIQUE = "A record with these values already exists."
+_MSG_FK       = "Cannot complete this operation: a related record still exists or is required."
+_MSG_UNIQUE   = "A record with these values already exists."
 _MSG_NOT_NULL = "A required database field is missing."
+_MSG_SYNTAX   = "One or more values have an invalid format."
+_MSG_SCHEMA   = "A database column or table is missing. Please run pending migrations."
 
 
 def parse_db_error(exc: Exception) -> Exception:
@@ -34,6 +39,10 @@ def parse_db_error(exc: Exception) -> Exception:
         return ConflictError(_MSG_UNIQUE)
     if PG_NOT_NULL_VIOLATION in msg or "not-null" in msg or "not null" in msg:
         return ValidationError([{"field": "_body", "message": _MSG_NOT_NULL}])
-    if PG_CHECK_VIOLATION in msg or "check" in msg and "violat" in msg:
+    if PG_CHECK_VIOLATION in msg or ("check" in msg and "violat" in msg):
         return ValidationError([{"field": "_body", "message": "A value violates a database constraint."}])
+    if PG_INVALID_SYNTAX in msg or "invalid input syntax" in msg:
+        return ValidationError([{"field": "_body", "message": _MSG_SYNTAX}])
+    if PG_UNDEFINED_COLUMN in msg or PG_UNDEFINED_TABLE in msg or "does not exist" in msg:
+        return ValidationError([{"field": "_body", "message": _MSG_SCHEMA}])
     return exc

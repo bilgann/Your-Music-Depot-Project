@@ -3,6 +3,7 @@ from typing import Optional
 
 from backend.app.domain.value_objects.compatibility.teaching_requirement import TeachingRequirement
 from backend.app.domain.value_objects.lesson.instrument_skill_level import InstrumentSkillLevel
+from backend.app.domain.value_objects.scheduling.blocked_time import BlockedTime
 
 
 @dataclass
@@ -15,6 +16,8 @@ class StudentEntity:
                             Voice/beginner).  Replaces the old single skill_level.
     requirements            List of TeachingRequirements the student's assigned
                             instructor must satisfy (e.g. active CPR credential).
+    blocked_times           Periods when the student is unavailable for lessons
+                            (e.g. school holidays, personal commitments).
     """
     student_id:              str
     person_id:               str
@@ -22,6 +25,7 @@ class StudentEntity:
     age:                     Optional[int] = None
     instrument_skill_levels: list[InstrumentSkillLevel] = field(default_factory=list)
     requirements:            list[TeachingRequirement] = field(default_factory=list)
+    blocked_times:           list[BlockedTime] = field(default_factory=list)
 
     def skill_level_for(self, instrument_name: str, instrument_family: str):
         """Return the SkillLevel for a specific instrument, or None."""
@@ -45,6 +49,9 @@ class StudentEntity:
             requirements=[
                 TeachingRequirement.from_dict(r) for r in d.get("requirements", [])
             ],
+            blocked_times=[
+                BlockedTime.from_dict(b) for b in d.get("blocked_times", [])
+            ],
         )
 
     def to_dict(self) -> dict:
@@ -55,4 +62,5 @@ class StudentEntity:
             "age":                     self.age,
             "instrument_skill_levels": [i.to_dict() for i in self.instrument_skill_levels],
             "requirements":            [r.to_dict() for r in self.requirements],
+            "blocked_times":           [b.to_dict() for b in self.blocked_times],
         }

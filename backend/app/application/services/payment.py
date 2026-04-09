@@ -12,6 +12,7 @@ from backend.app.infrastructure.database.repositories import Client
 from backend.app.infrastructure.database.repositories import Invoice
 from backend.app.infrastructure.database.repositories import Payment
 from backend.app.infrastructure.database.repositories import Transaction
+from backend.app.infrastructure.database.repositories.credit_transaction import CreditTransaction
 
 
 # -- Basic CRUD -----------------------------------------------------------------
@@ -79,18 +80,53 @@ def record_payment(data: dict) -> dict:
     new_status = determine_invoice_status(total, new_paid, invoice["status"])
     Invoice.update(invoice_id, {"amount_paid": new_paid, "status": new_status})
 
+    client_id = invoice.get("client_id")
+    if client_id:
+        recalculate_invoice_statuses(client_id)
+
     return payment
 
 
 # -- Recording via client (credits wallet) --------------------------------------
+
+def recalculate_invoice_statuses(client_id: str) -> None:
+    """
+    Recompute the status of every non-cancelled invoice for a client.
+
+    Rules (applied in priority order):
+      - amount_paid >= total_amount  → Paid
+      - period_end is in the past    → Overdue
+      - otherwise                    → Pending
+    """
+    from datetime import date
+    today = date.today().isoformat()
+
+    for inv in Invoice.get_by_client(client_id):
+        if inv.get("status") == "Cancelled":
+            continue
+        total = float(inv.get("total_amount", 0))
+        paid = float(inv.get("amount_paid", 0))
+
+        if paid >= total:
+            new_status = "Paid"
+        elif (inv.get("period_end") or "") < today:
+            new_status = "Overdue"
+        else:
+            new_status = "Pending"
+
+        if new_status != inv.get("status"):
+            Invoice.update(inv["invoice_id"], {"status": new_status})
+
 
 def pay_via_client(client_id: str, amount: float, payment_method: str = "Card") -> dict:
     """
     Record a payment made by a client.
 
     Flow:
-      1. Apply to the client's oldest Pending invoices first.
-      2. Any remainder is added to client.credits for future invoices.
+      1. Recalculate all invoice statuses so Overdue flags are current.
+      2. Apply to Overdue invoices first (oldest first), then Pending.
+      3. Any remainder is added to client.credits for future invoices.
+      4. Recalculate statuses again so newly-paid invoices are marked Paid.
     """
     client_rows = Client.get(client_id)
     if not client_rows:
@@ -99,6 +135,9 @@ def pay_via_client(client_id: str, amount: float, payment_method: str = "Card") 
     amount = round(float(amount), 2)
     if amount <= 0:
         raise InvalidPaymentAmountError("amount must be greater than 0.")
+
+    # Ensure statuses are accurate before we decide which invoices to pay first.
+    recalculate_invoice_statuses(client_id)
 
     Transaction.create(
         client_id, amount,
@@ -109,7 +148,11 @@ def pay_via_client(client_id: str, amount: float, payment_method: str = "Card") 
     remaining = amount
     applied = []
 
-    for invoice in Client.get_pending_invoices(client_id):
+    # Fetch unpaid invoices already ordered by period_start; sort overdue first.
+    unpaid = Client.get_unpaid_invoices(client_id)
+    unpaid.sort(key=lambda inv: (0 if inv.get("status") == "Overdue" else 1, inv.get("period_start", "")))
+
+    for invoice in unpaid:
         if remaining <= 0:
             break
         result = _apply_amount_to_invoice(client_id, invoice, remaining, payment_method)
@@ -120,6 +163,9 @@ def pay_via_client(client_id: str, amount: float, payment_method: str = "Card") 
         current_credits = float(client_rows[0].get("credits", 0))
         Client.update_credits(client_id, current_credits + remaining)
         CreditTransaction.create(client_id, remaining, "Added to credits - no outstanding invoices")
+
+    # Reflect any status changes (e.g. Overdue → Paid) from this payment.
+    recalculate_invoice_statuses(client_id)
 
     return {
         "invoices_applied": applied,

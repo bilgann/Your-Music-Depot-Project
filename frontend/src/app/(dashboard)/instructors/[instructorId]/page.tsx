@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import DataState from "@/components/ui/data_state";
 import Navbar from "@/components/ui/navbar";
+import BlockedTimeModal from "@/features/rooms/components/blocked_time_modal";
 import CredentialModal from "@/features/instructors/components/credential_modal";
 import InstructorDetailTabs from "@/features/instructors/components/instructor_detail_tabs";
 import InstructorInfoCard from "@/features/instructors/components/instructor_info_card";
@@ -27,6 +28,15 @@ export default function InstructorDetailPage() {
         openCredentialModal,
         handleCredentialSubmit,
         handleCredentialDelete,
+        blockedTimes,
+        showBlockedTimeModal,
+        setShowBlockedTimeModal,
+        blockedTimeForm,
+        setBlockedTimeForm,
+        savingBlockedTime,
+        openBlockedTimeModal,
+        handleBlockedTimeSubmit,
+        handleBlockedTimeDelete,
     } = useInstructorDetail(instructorId);
     const [activeSection, setActiveSection] = useState("credentials");
 
@@ -48,8 +58,11 @@ export default function InstructorDetailPage() {
                             schedule={schedule}
                             students={students}
                             compatibility={compatibility}
+                            blockedTimes={blockedTimes}
                             onAddCredential={openCredentialModal}
                             onDeleteCredential={handleCredentialDelete}
+                            onAddBlockedTime={openBlockedTimeModal}
+                            onDeleteBlockedTime={handleBlockedTimeDelete}
                         />
                     </>
                 )}
@@ -61,6 +74,15 @@ export default function InstructorDetailPage() {
                     onChange={setCredentialForm}
                     onClose={() => setShowCredentialModal(false)}
                     onSubmit={handleCredentialSubmit}
+                />
+            )}
+            {showBlockedTimeModal && (
+                <BlockedTimeModal
+                    form={blockedTimeForm}
+                    saving={savingBlockedTime}
+                    onChange={(form) => setBlockedTimeForm(form)}
+                    onClose={() => setShowBlockedTimeModal(false)}
+                    onSubmit={handleBlockedTimeSubmit}
                 />
             )}
         </>

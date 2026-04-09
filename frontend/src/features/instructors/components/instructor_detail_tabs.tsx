@@ -1,7 +1,8 @@
 import Sections from "@/components/ui/sections";
 import type { Credential, InstructorCompatibility } from "@/features/instructors/api/instructor_detail";
 import type { Student } from "@/features/students/api/student";
-import type { Lesson } from "@/types/index";
+import type { BlockedTime, Lesson } from "@/types/index";
+import InstructorBlockedTimesTab from "@/features/instructors/components/instructor_blocked_times_tab";
 import InstructorCompatibilityTab from "@/features/instructors/components/instructor_compatibility_tab";
 import InstructorCredentialsTab from "@/features/instructors/components/instructor_credentials_tab";
 import InstructorScheduleTab from "@/features/instructors/components/instructor_schedule_tab";
@@ -14,8 +15,11 @@ interface Props {
     schedule: Lesson[];
     students: Student[];
     compatibility: InstructorCompatibility[];
+    blockedTimes: BlockedTime[];
     onAddCredential: () => void;
     onDeleteCredential: (credentialId: string) => void;
+    onAddBlockedTime: () => void;
+    onDeleteBlockedTime: (index: number) => void;
 }
 
 export default function InstructorDetailTabs({
@@ -25,8 +29,11 @@ export default function InstructorDetailTabs({
     schedule,
     students,
     compatibility,
+    blockedTimes,
     onAddCredential,
     onDeleteCredential,
+    onAddBlockedTime,
+    onDeleteBlockedTime,
 }: Props) {
     return (
         <Sections
@@ -52,6 +59,11 @@ export default function InstructorDetailTabs({
                     key: "compatibility",
                     label: "Compatibility",
                     content: <InstructorCompatibilityTab items={compatibility} />,
+                },
+                {
+                    key: "blocked-times",
+                    label: "Blocked Times",
+                    content: <InstructorBlockedTimesTab blockedTimes={blockedTimes} onAdd={onAddBlockedTime} onDelete={onDeleteBlockedTime} />,
                 },
             ]}
         />

@@ -1,5 +1,5 @@
 import { apiFetch } from "@/lib/api";
-import type { Lesson } from "@/types/index";
+import type { BlockedTime, Lesson } from "@/types/index";
 import type { Student } from "@/features/students/api/student";
 import type { Instructor } from "@/features/instructors/api/instructor";
 
@@ -24,7 +24,7 @@ export type Credential = {
 export type InstructorDetail = Instructor & {
     hourly_rate?: number | null;
     status?: string | null;
-    blocked_times?: Array<{ start_time?: string; end_time?: string; reason?: string | null }>;
+    blocked_times?: BlockedTime[];
 };
 
 export type InstructorCompatibility = {
@@ -96,6 +96,16 @@ export async function getCoursesByInstructor(instructorId: string): Promise<Arra
     if (!res.ok) throw new Error(`Failed to fetch instructor courses: ${res.statusText}`);
     const body = await res.json();
     return body.data ?? [];
+}
+
+export async function updateInstructorBlockedTimes(instructorId: string, blockedTimes: BlockedTime[]): Promise<InstructorDetail> {
+    const res = await apiFetch(`/api/instructors/${instructorId}`, {
+        method: "PUT",
+        body: JSON.stringify({ blocked_times: blockedTimes }),
+    });
+    if (!res.ok) throw new Error(`Failed to update instructor blocked times: ${res.statusText}`);
+    const body = await res.json();
+    return unwrapOne<InstructorDetail>(body.data);
 }
 
 export async function getInstructorCompatibility(studentId: string, instructorId: string): Promise<CompatibilityResponse> {

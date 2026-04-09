@@ -16,6 +16,11 @@ from backend.tests.e2e.base import E2EBase, USERNAME, PASSWORD
 class TestLoginFlow(E2EBase):
     """Covers: redirect to login, valid login, invalid login, show/hide password."""
 
+    def setUp(self):
+        """Each login test needs an unauthenticated browser."""
+        self._dismiss_alert_if_present()
+        self._clear_session()
+
     def test_root_redirects_to_login(self):
         """/ should redirect to /login."""
         self._get("/")

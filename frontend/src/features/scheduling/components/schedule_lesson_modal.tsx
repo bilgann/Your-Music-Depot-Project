@@ -58,6 +58,7 @@ export default function ScheduleLessonModal({ existingLesson, onSaved, onClose }
     student_ids: existingLesson?.student_ids ?? [],
     instrument_name: existingLesson?.instrument?.name || '',
     instrument_family: existingLesson?.instrument?.family || '',
+    capacity: existingLesson?.capacity?.toString() || '',
   })
 
   useEffect(() => {
@@ -152,13 +153,12 @@ export default function ScheduleLessonModal({ existingLesson, onSaved, onClose }
 
   // Filtered options based on compatibility
   const instructorOptions = useMemo(() => {
-    return instructors.map((i) => {
-      const blocked = compatibleInstructorIds !== null && !compatibleInstructorIds.has(i.instructor_id)
-      return {
-        value: i.instructor_id,
-        label: blocked ? `${i.name} (incompatible)` : i.name,
-      }
-    })
+    if (compatibleInstructorIds === null) {
+      return instructors.map((i) => ({ value: i.instructor_id, label: i.name }))
+    }
+    return instructors
+      .filter((i) => compatibleInstructorIds.has(i.instructor_id))
+      .map((i) => ({ value: i.instructor_id, label: i.name }))
   }, [instructors, compatibleInstructorIds])
 
   const studentOptions = useMemo(() => {
@@ -198,24 +198,27 @@ export default function ScheduleLessonModal({ existingLesson, onSaved, onClose }
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
-    const start = new Date(formData.start_time)
-    const end = new Date(formData.end_time)
-
-    if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) {
+    if (!formData.start_time || !formData.end_time) {
       alert('Please provide valid start and end times')
       return
     }
 
     // Saturday support: the studio accepts lessons from 9:00 to 15:00 on Saturdays.
-    if (start.getDay() === 6 || end.getDay() === 6) {
-      const startHour = start.getHours() + start.getMinutes() / 60
-      const endHour = end.getHours() + end.getMinutes() / 60
-      if (startHour < 9 || endHour > 15) {
-        alert('Saturday lessons must be scheduled between 9:00 AM and 3:00 PM')
-        return
+    // Only applies to one-time lessons where we know the specific date.
+    const isOneTimeDate = formData.recurrence && !formData.recurrence.includes(' ')
+    if (isOneTimeDate) {
+      const lessonDate = new Date(`${formData.recurrence}T${formData.start_time}`)
+      if (lessonDate.getDay() === 6) {
+        const [startH, startM] = formData.start_time.split(':').map(Number)
+        const [endH, endM] = formData.end_time.split(':').map(Number)
+        if ((startH + startM / 60) < 9 || (endH + endM / 60) > 15) {
+          alert('Saturday lessons must be scheduled between 9:00 AM and 3:00 PM')
+          return
+        }
       }
     }
 
+    setSaving(true)
     try {
       const payload: Partial<Lesson> = {
         instructor_id: formData.instructor_id,
@@ -227,9 +230,7 @@ export default function ScheduleLessonModal({ existingLesson, onSaved, onClose }
       }
       if (formData.rate) payload.rate = parseFloat(formData.rate)
       if (formData.recurrence) payload.recurrence = formData.recurrence
-      if (formData.instrument_name && formData.instrument_family) {
-        payload.instrument = { name: formData.instrument_name, family: formData.instrument_family }
-      }
+      if (formData.capacity) payload.capacity = parseInt(formData.capacity)
 
       if (existingLesson) {
         await updateLesson(existingLesson.lesson_id, payload)
@@ -246,10 +247,12 @@ export default function ScheduleLessonModal({ existingLesson, onSaved, onClose }
     }
   }
 
-  const capacityHint = roomCapacity
-    ? `${formData.student_ids.length} of ${roomCapacity} spots filled`
+  const lessonCapacity = formData.capacity ? parseInt(formData.capacity) : null
+  const effectiveCapacity = lessonCapacity ?? roomCapacity
+  const capacityHint = effectiveCapacity
+    ? `${formData.student_ids.length} of ${effectiveCapacity} spots filled`
     : undefined
-  const overCapacity = roomCapacity !== null && formData.student_ids.length > roomCapacity
+  const overCapacity = effectiveCapacity !== null && formData.student_ids.length > effectiveCapacity
 
   return (
     <Modal
@@ -267,7 +270,7 @@ export default function ScheduleLessonModal({ existingLesson, onSaved, onClose }
         required
       />
 
-      {roomInstrumentOptions.length > 0 ? (
+      {roomInstrumentOptions.length > 0 && (
         <SelectField
           label="Instrument"
           value={selectedInstrument}
@@ -276,22 +279,21 @@ export default function ScheduleLessonModal({ existingLesson, onSaved, onClose }
           placeholder="Select instrument..."
           required
         />
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <TextField
-            label="Instrument Name"
-            value={formData.instrument_name}
-            onChange={(v) => setFormData({ ...formData, instrument_name: v })}
-          />
-          <SelectField
-            label="Instrument Family"
-            value={formData.instrument_family}
-            onChange={(v) => setFormData({ ...formData, instrument_family: v })}
-            options={INSTRUMENT_FAMILY_OPTIONS}
-            placeholder="Select family..."
-          />
-        </div>
       )}
+      <div style={{ display: roomInstrumentOptions.length > 0 ? 'none' : 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <TextField
+          label="Instrument Name"
+          value={formData.instrument_name}
+          onChange={(v) => setFormData(prev => ({ ...prev, instrument_name: v }))}
+        />
+        <SelectField
+          label="Instrument Family"
+          value={formData.instrument_family}
+          onChange={(v) => setFormData(prev => ({ ...prev, instrument_family: v }))}
+          options={INSTRUMENT_FAMILY_OPTIONS}
+          placeholder="Select family..."
+        />
+      </div>
 
       <SelectField
         label="Instructor"
@@ -306,12 +308,12 @@ export default function ScheduleLessonModal({ existingLesson, onSaved, onClose }
         options={studentOptions}
         selected={formData.student_ids}
         onChange={(student_ids) => setFormData({ ...formData, student_ids })}
-        max={roomCapacity ?? undefined}
+        max={effectiveCapacity ?? undefined}
         hint={
           loadingCompat
             ? 'Checking compatibility...'
             : overCapacity
-              ? `Over capacity! Room holds ${roomCapacity} students.`
+              ? `Over capacity! Lesson holds ${effectiveCapacity} students.`
               : capacityHint
         }
       />
@@ -345,7 +347,7 @@ export default function ScheduleLessonModal({ existingLesson, onSaved, onClose }
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
         <SelectField
           label="Status"
           value={formData.status}
@@ -362,6 +364,13 @@ export default function ScheduleLessonModal({ existingLesson, onSaved, onClose }
           onChange={(v) => setFormData({ ...formData, rate: v })}
           min={0}
           step={0.01}
+        />
+        <NumberField
+          label="Capacity"
+          value={formData.capacity}
+          onChange={(v) => setFormData({ ...formData, capacity: v })}
+          min={1}
+          placeholder={roomCapacity ? `Room max: ${roomCapacity}` : undefined}
         />
       </div>
     </Modal>

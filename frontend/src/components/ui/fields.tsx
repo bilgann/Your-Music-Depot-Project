@@ -22,13 +22,14 @@ interface NumberFieldProps {
     min?: number;
     step?: number;
     required?: boolean;
+    placeholder?: string;
 }
 
-export function NumberField({ label, value, onChange, min, step, required }: NumberFieldProps) {
+export function NumberField({ label, value, onChange, min, step, required, placeholder }: NumberFieldProps) {
     return (
         <div className="form-field">
             <label>{label}</label>
-            <input type="number" value={value} onChange={(e) => onChange(e.target.value)} min={min} step={step} required={required} />
+            <input type="number" value={value} onChange={(e) => onChange(e.target.value)} min={min} step={step} required={required} placeholder={placeholder} />
         </div>
     );
 }

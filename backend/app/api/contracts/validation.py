@@ -38,7 +38,7 @@ _SCHEMAS: dict = {
         "types": {
             "start_time": str, "end_time": str,
             "rate": (int, float), "recurrence": str,
-            "course_id": str, "status": str,
+            "course_id": str, "status": str, "capacity": int,
         },
     },
     "lesson_enrollment": {

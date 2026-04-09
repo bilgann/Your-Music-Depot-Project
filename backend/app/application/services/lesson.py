@@ -1,11 +1,9 @@
-from backend.app.domain.exceptions.exceptions import ConflictError, NotFoundError
-from backend.app.infrastructure.database.database import DatabaseConnection
-from backend.app.infrastructure.database.repositories import Lesson
-from backend.app.infrastructure.database.repositories import LessonEnrollment
+import uuid
 
 from backend.app.domain.exceptions.exceptions import ConflictError, NotFoundError
 from backend.app.domain.services import schedule_projection
 from backend.app.domain.value_objects.scheduling.blocked_time import BlockedTime
+from backend.app.infrastructure.database.database import DatabaseConnection
 from backend.app.infrastructure.database.repositories import (
     Client,
     Instructor,
@@ -29,6 +27,61 @@ def _check_time_overlap(start1, end1, start2, end2):
     Returns True if there's any overlap.
     """
     return start1 < end2 and end1 > start2
+
+
+def _recurrences_can_overlap(rec1, rec2):
+    """
+    Return True if two recurrence strings could produce occurrences on the same date.
+    Conservative: returns True when undetermined.
+
+    Supported formats:
+      - ISO date "YYYY-MM-DD" (one-time)
+      - 5-field cron "min hour dom month dow" where dow is day-of-week (e.g. "MON,WED")
+    """
+    import re
+    from datetime import date as _date
+
+    if not rec1 or not rec2:
+        return True  # no recurrence info → assume possible conflict
+
+    _WEEKDAY_NAMES = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
+
+    def _parse(rec):
+        rec = rec.strip()
+        parts = rec.split()
+        if len(parts) == 5:
+            dow = parts[4].upper()
+            if dow == "*":
+                return "daily", None
+            return "weekly", set(dow.split(","))
+        if re.match(r"^\d{4}-\d{2}-\d{2}$", rec):
+            try:
+                d = _date.fromisoformat(rec)
+                return "date", _WEEKDAY_NAMES[d.weekday()]
+            except ValueError:
+                pass
+        return None, None
+
+    t1, v1 = _parse(rec1)
+    t2, v2 = _parse(rec2)
+
+    if t1 is None or t2 is None:
+        return True  # can't determine — conservative
+
+    if t1 == "daily" or t2 == "daily":
+        return True
+
+    if t1 == "date" and t2 == "date":
+        return rec1.strip() == rec2.strip()
+
+    if t1 == "date" and t2 == "weekly":
+        return v1 in v2
+
+    if t1 == "weekly" and t2 == "date":
+        return v2 in v1
+
+    # Both weekly — conflict only if they share at least one weekday
+    return bool(v1 & v2)
 
 
 def _first_present(record, keys, default=None):
@@ -173,76 +226,73 @@ def _format_conflict_message(resource_type, resource_name, start_time, end_time)
     return f"{resource_name} conflicts {start}–{end}"
 
 
-def _check_instructor_overlap(instructor_id, start_time, end_time, exclude_lesson_id=None):
+def _check_instructor_overlap(instructor_id, start_time, end_time, recurrence=None, exclude_lesson_id=None):
     """
-    Check if instructor has overlapping lessons.
+    Check if instructor has overlapping lessons on the same schedule.
     Returns list of conflict messages, excluding current lesson if specified.
     """
     try:
         lessons = _db().table("lesson").select("*").eq("instructor_id", instructor_id).execute().data
         conflicts = []
-        
+
         for lesson in lessons:
-            # Skip the current lesson if provided (for updates)
             if exclude_lesson_id and lesson.get("lesson_id") == exclude_lesson_id:
                 continue
-            
-            # Check if times overlap
-            if _check_time_overlap(start_time, end_time, lesson.get("start_time"), lesson.get("end_time")):
+
+            if (_check_time_overlap(start_time, end_time, lesson.get("start_time"), lesson.get("end_time"))
+                    and _recurrences_can_overlap(recurrence, lesson.get("recurrence"))):
                 resource_name = _get_resource_name(lesson, "instructor")
                 message = _format_conflict_message("instructor", resource_name, lesson.get("start_time"), lesson.get("end_time"))
                 conflicts.append(message)
-        
+
         return conflicts
     except Exception:
         return []
 
 
-def _check_room_overlap(room_id, start_time, end_time, exclude_lesson_id=None):
+def _check_room_overlap(room_id, start_time, end_time, recurrence=None, exclude_lesson_id=None):
     """
-    Check if room has overlapping lessons.
+    Check if room has overlapping lessons on the same schedule.
     Returns list of conflict messages, excluding current lesson if specified.
     """
     try:
         lessons = _db().table("lesson").select("*").eq("room_id", room_id).execute().data
         conflicts = []
-        
+
         for lesson in lessons:
-            # Skip the current lesson if provided (for updates)
             if exclude_lesson_id and lesson.get("lesson_id") == exclude_lesson_id:
                 continue
-            
-            # Check if times overlap
-            if _check_time_overlap(start_time, end_time, lesson.get("start_time"), lesson.get("end_time")):
+
+            if (_check_time_overlap(start_time, end_time, lesson.get("start_time"), lesson.get("end_time"))
+                    and _recurrences_can_overlap(recurrence, lesson.get("recurrence"))):
                 resource_name = _get_resource_name(lesson, "room")
                 message = _format_conflict_message("room", resource_name, lesson.get("start_time"), lesson.get("end_time"))
                 conflicts.append(message)
-        
+
         return conflicts
     except Exception:
         return []
 
 
-def _check_student_overlap(student_id, start_time, end_time, exclude_lesson_id=None):
+def _check_student_overlap(student_id, start_time, end_time, recurrence=None, exclude_lesson_id=None):
     """
-    Check if student has overlapping lessons.
+    Check if student has overlapping lessons on the same schedule.
     Returns list of conflict messages, excluding current lesson if specified.
     """
     try:
-        lessons = _db().table("lesson").select("*").eq("student_id", student_id).execute().data
+        lessons = _db().table("lesson").select("*").contains("student_ids", [student_id]).execute().data
         conflicts = []
-        
+
         for lesson in lessons:
-            # Skip the current lesson if provided (for updates)
             if exclude_lesson_id and lesson.get("lesson_id") == exclude_lesson_id:
                 continue
-            
-            # Check if times overlap
-            if _check_time_overlap(start_time, end_time, lesson.get("start_time"), lesson.get("end_time")):
+
+            if (_check_time_overlap(start_time, end_time, lesson.get("start_time"), lesson.get("end_time"))
+                    and _recurrences_can_overlap(recurrence, lesson.get("recurrence"))):
                 resource_name = _get_resource_name(lesson, "student")
                 message = _format_conflict_message("student", resource_name, lesson.get("start_time"), lesson.get("end_time"))
                 conflicts.append(message)
-        
+
         return conflicts
     except Exception:
         return []
@@ -252,56 +302,30 @@ def validate_lesson_overlaps(data, exclude_lesson_id=None):
     """
     Validate that lesson doesn't conflict with existing lessons.
     Returns (is_valid, error_message) tuple.
-    Error message includes formatted conflict details.
     """
     start_time = data.get("start_time")
     end_time = data.get("end_time")
     instructor_id = data.get("instructor_id")
     room_id = data.get("room_id")
-    student_id = data.get("student_id")
-    
-    if not all([start_time, end_time, instructor_id, room_id, student_id]):
-        return False, "Missing required fields: start_time, end_time, instructor_id, room_id, student_id"
-    
-    instrument = data.get("instrument")
-    
-    # Check if instrument is specified and validate instructor has the skill
-    if instrument:
-        has_skill, instructor_skill = _check_instructor_has_skill(instructor_id, instrument)
-        if not has_skill:
-            instructor_name = _get_instructor_name(instructor_id)
-            return False, f"{instructor_name} is not certified to teach {instrument}"
+    recurrence = data.get("recurrence")
+    student_ids = data.get("student_ids") or []
 
-        student_skill = _get_student_skill_record(student_id, instrument)
-        if not student_skill:
-            return False, f"Student {student_id} has no {instrument} skill level recorded"
+    if not all([start_time, end_time, instructor_id, room_id]):
+        return False, "Missing required fields: start_time, end_time, instructor_id, room_id"
 
-        level_ok, instructor_min, student_level = _check_skill_level_match(instructor_skill, student_skill)
-        if not level_ok:
-            if instructor_min is None or student_level is None:
-                return False, f"Missing skill levels for {instrument}: instructor min or student level is not set"
-            return False, (
-                f"Skill level mismatch for {instrument}: "
-                f"instructor minimum is {instructor_min}, student level is {student_level}"
-            )
-    # Check instructor overlap
-    instructor_conflicts = _check_instructor_overlap(instructor_id, start_time, end_time, exclude_lesson_id)
+    instructor_conflicts = _check_instructor_overlap(instructor_id, start_time, end_time, recurrence, exclude_lesson_id)
     if instructor_conflicts:
-        # Return first instructor conflict message
         return False, instructor_conflicts[0]
-    
-    # Check room overlap
-    room_conflicts = _check_room_overlap(room_id, start_time, end_time, exclude_lesson_id)
+
+    room_conflicts = _check_room_overlap(room_id, start_time, end_time, recurrence, exclude_lesson_id)
     if room_conflicts:
-        # Return first room conflict message
         return False, room_conflicts[0]
-    
-    # Check student overlap
-    student_conflicts = _check_student_overlap(student_id, start_time, end_time, exclude_lesson_id)
-    if student_conflicts:
-        # Return first student conflict message
-        return False, student_conflicts[0]
-    
+
+    for sid in student_ids:
+        student_conflicts = _check_student_overlap(sid, start_time, end_time, recurrence, exclude_lesson_id)
+        if student_conflicts:
+            return False, student_conflicts[0]
+
     return True, None
 
 
@@ -336,7 +360,7 @@ def get_occurrences_for_lesson(lesson_id):
 
 _LESSON_COLUMNS = {
     "instructor_id", "room_id", "start_time", "end_time",
-    "status", "rate", "recurrence", "student_ids", "course_id",
+    "status", "rate", "recurrence", "student_ids", "course_id", "capacity",
 }
 
 
@@ -348,24 +372,22 @@ def _clean_payload(data: dict) -> dict:
 def create_lesson(data):
     is_valid, error_msg = validate_lesson_overlaps(data)
     if not is_valid:
-        raise ValueError(error_msg)
-    return Lesson.create(data)
+        raise ConflictError(error_msg)
+    return Lesson.create(_clean_payload(data))
 
 
 def update_lesson(lesson_id, data):
-    # Get current lesson to merge with update data for validation
     current = get_lesson_by_id(lesson_id)
     if not current:
-        raise ValueError(f"Lesson {lesson_id} not found")
-    
-    # Merge current data with update data for complete validation
+        raise NotFoundError(f"Lesson {lesson_id} not found.")
+
     merged_data = {**current[0], **data}
-    
+
     is_valid, error_msg = validate_lesson_overlaps(merged_data, exclude_lesson_id=lesson_id)
     if not is_valid:
-        raise ValueError(error_msg)
-    
-    return Lesson.update(lesson_id, data)
+        raise ConflictError(error_msg)
+
+    return Lesson.update(lesson_id, _clean_payload(data))
 
 
 def delete_lesson(lesson_id):

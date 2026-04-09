@@ -62,6 +62,8 @@ $env:PYTHONPATH="."; python -m pytest backend/tests/e2e/test_login.py -v
 | `test_add_lesson_modal.py` | Add Lesson Modal |
 | `test_edit_mode.py` | Edit Mode (lesson edit / delete) |
 | `test_token_persistence.py` | Token Persistence (page refresh) |
+| `test_schedule_conflicts.py` | Schedule Conflicts (add lessons, instructor/room/capacity conflicts) |
+| `test_student_timetable.py` | Student Timetable (generate schedule, week/month views, navigation) |
 
 **Optional env vars** (set before running):
 ```powershell

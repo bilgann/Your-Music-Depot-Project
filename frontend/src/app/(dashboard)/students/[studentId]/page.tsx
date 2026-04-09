@@ -7,7 +7,9 @@ import Navbar from "@/components/ui/navbar";
 import Button from "@/components/ui/button";
 import DataState from "@/components/ui/data_state";
 import Sections from "@/components/ui/sections";
+import BlockedTimeModal from "@/features/rooms/components/blocked_time_modal";
 import CompatibilityOverrideModal from "@/features/students/components/compatibility_override_modal";
+import StudentBlockedTimesTab from "@/features/students/components/student_blocked_times_tab";
 import StudentCompatibilityTab from "@/features/students/components/student_compatibility_tab";
 import { useStudentDetail } from "@/features/students/hooks/use_student_detail";
 import StudentInfoCard from "@/features/students/components/student_info_card";
@@ -38,6 +40,15 @@ export default function StudentDetailPage() {
         instructorOptions,
         openCompatibilityModal,
         handleCompatibilitySubmit,
+        blockedTimes,
+        showBlockedTimeModal,
+        setShowBlockedTimeModal,
+        blockedTimeForm,
+        setBlockedTimeForm,
+        savingBlockedTime,
+        openBlockedTimeModal,
+        handleBlockedTimeSubmit,
+        handleBlockedTimeDelete,
     } = useStudentDetail(studentId);
     const [activeSection, setActiveSection] = useState("lessons");
     const [showTimetable, setShowTimetable] = useState(false);
@@ -94,13 +105,24 @@ export default function StudentDetailPage() {
                                 />
                             ),
                         },
+                        {
+                            key: "blocked-times",
+                            label: "Blocked Times",
+                            content: (
+                                <StudentBlockedTimesTab
+                                    blockedTimes={blockedTimes}
+                                    onAdd={openBlockedTimeModal}
+                                    onDelete={handleBlockedTimeDelete}
+                                />
+                            ),
+                        },
                     ]}
                 />
             </DataState>
             {showTimetable && student && (
                 <PrintTimetableModal
-                    studentId={studentId}
                     studentName={student.person.name}
+                    enrollments={enrollments}
                     onClose={() => setShowTimetable(false)}
                 />
             )}
@@ -114,6 +136,15 @@ export default function StudentDetailPage() {
                     onSubmit={handleCompatibilitySubmit}
                 />
             ) : null}
+            {showBlockedTimeModal && (
+                <BlockedTimeModal
+                    form={blockedTimeForm}
+                    saving={savingBlockedTime}
+                    onChange={(form) => setBlockedTimeForm(form)}
+                    onClose={() => setShowBlockedTimeModal(false)}
+                    onSubmit={handleBlockedTimeSubmit}
+                />
+            )}
         </>
     );
 }

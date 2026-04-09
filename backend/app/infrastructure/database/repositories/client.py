@@ -59,6 +59,20 @@ class Client:
         )
 
     @staticmethod
+    def get_unpaid_invoices(client_id):
+        """Return all Overdue and Pending invoices for a client, ordered by period_start."""
+        return (
+            DatabaseConnection().client
+            .table("invoice")
+            .select("*")
+            .eq("client_id", client_id)
+            .in_("status", ["Overdue", "Pending"])
+            .order("period_start")
+            .execute()
+            .data
+        )
+
+    @staticmethod
     def update_credits(client_id, new_balance: float):
         return (
             DatabaseConnection().client

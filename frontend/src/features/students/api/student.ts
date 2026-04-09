@@ -1,4 +1,5 @@
 import { apiFetch, apiJsonPaged } from "@/lib/api";
+import type { BlockedTime } from "@/types/index";
 
 export type TeachingRequirement = {
     requirement_type: "credential" | "min_student_age" | "max_student_age";
@@ -18,6 +19,7 @@ export type Student = {
     age?: number | null;
     instrument_skill_levels?: InstrumentSkillLevel[];
     requirements?: TeachingRequirement[];
+    blocked_times?: BlockedTime[];
     person: {
         person_id: string;
         name: string;
@@ -124,6 +126,16 @@ export async function getStudentLessons(studentId: string): Promise<StudentEnrol
     if (!res.ok) throw new Error(`Failed to fetch student lessons: ${res.statusText}`);
     const body = await res.json();
     return body.data ?? [];
+}
+
+export async function updateStudentBlockedTimes(studentId: string, blockedTimes: BlockedTime[]): Promise<Student> {
+    const res = await apiFetch(`/api/students/${studentId}`, {
+        method: "PUT",
+        body: JSON.stringify({ blocked_times: blockedTimes }),
+    });
+    if (!res.ok) throw new Error(`Failed to update student blocked times: ${res.statusText}`);
+    const body = await res.json();
+    return Array.isArray(body.data) ? body.data[0] : body.data;
 }
 
 export async function getStudentTimetable(

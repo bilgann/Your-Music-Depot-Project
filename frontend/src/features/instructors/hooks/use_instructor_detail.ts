@@ -9,6 +9,7 @@ import {
     getInstructorCredentials,
     getInstructorLessons,
     removeCredential,
+    updateInstructorBlockedTimes,
 } from "@/features/instructors/api/instructor_detail";
 import { useToast } from "@/components/ui/toast";
 import type { Student } from "@/features/students/api/student";
@@ -18,7 +19,47 @@ import type {
     InstructorDetail,
     InstrumentProficiency,
 } from "@/features/instructors/api/instructor_detail";
-import type { Lesson } from "@/types/index";
+import type { BlockedTime, Lesson } from "@/types/index";
+
+export type BlockedTimeFormState = {
+    label: string;
+    block_type: string;
+    start_date: string;
+    end_date: string;
+    recurrence_mode: "none" | "recurring";
+    recurrence: string;
+};
+
+const emptyBlockedTimeForm: BlockedTimeFormState = {
+    label: "",
+    block_type: "other",
+    start_date: "",
+    end_date: "",
+    recurrence_mode: "none",
+    recurrence: "",
+};
+
+function toBlockedTimePayload(form: BlockedTimeFormState): BlockedTime {
+    if (form.recurrence_mode === "recurring" && form.recurrence) {
+        return {
+            label: form.label,
+            block_type: form.block_type,
+            recurrence: { rule_type: "cron", value: form.recurrence },
+        };
+    }
+    if (form.start_date && form.end_date && form.start_date !== form.end_date) {
+        return {
+            label: form.label,
+            block_type: form.block_type,
+            date_range: { period_start: form.start_date, period_end: form.end_date },
+        };
+    }
+    return {
+        label: form.label,
+        block_type: form.block_type,
+        date: form.start_date || form.end_date,
+    };
+}
 
 export type CredentialFormState = {
     credential_type: string;
@@ -63,6 +104,9 @@ export function useInstructorDetail(instructorId: string) {
     const [showCredentialModal, setShowCredentialModal] = useState(false);
     const [credentialForm, setCredentialForm] = useState<CredentialFormState>(emptyCredentialForm);
     const [savingCredential, setSavingCredential] = useState(false);
+    const [showBlockedTimeModal, setShowBlockedTimeModal] = useState(false);
+    const [blockedTimeForm, setBlockedTimeForm] = useState<BlockedTimeFormState>(emptyBlockedTimeForm);
+    const [savingBlockedTime, setSavingBlockedTime] = useState(false);
 
     async function refresh() {
         try {
@@ -157,6 +201,41 @@ export function useInstructorDetail(instructorId: string) {
         }
     }
 
+    const blockedTimes = instructor?.blocked_times ?? [];
+
+    function openBlockedTimeModal() {
+        setBlockedTimeForm(emptyBlockedTimeForm);
+        setShowBlockedTimeModal(true);
+    }
+
+    async function handleBlockedTimeSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        if (!instructor) return;
+        setSavingBlockedTime(true);
+        try {
+            const next = [...blockedTimes, toBlockedTimePayload(blockedTimeForm)];
+            const updated = await updateInstructorBlockedTimes(instructorId, next);
+            setInstructor(updated);
+            setShowBlockedTimeModal(false);
+        } catch {
+            toast("Failed to save blocked time.", "error");
+        } finally {
+            setSavingBlockedTime(false);
+        }
+    }
+
+    async function handleBlockedTimeDelete(index: number) {
+        if (!instructor) return;
+        if (!confirm("Delete this blocked time?")) return;
+        try {
+            const next = blockedTimes.filter((_, i) => i !== index);
+            const updated = await updateInstructorBlockedTimes(instructorId, next);
+            setInstructor(updated);
+        } catch {
+            toast("Failed to delete blocked time.", "error");
+        }
+    }
+
     return {
         instructor,
         credentials,
@@ -174,5 +253,14 @@ export function useInstructorDetail(instructorId: string) {
         openCredentialModal,
         handleCredentialSubmit,
         handleCredentialDelete,
+        blockedTimes,
+        showBlockedTimeModal,
+        setShowBlockedTimeModal,
+        blockedTimeForm,
+        setBlockedTimeForm,
+        savingBlockedTime,
+        openBlockedTimeModal,
+        handleBlockedTimeSubmit,
+        handleBlockedTimeDelete,
     };
 }

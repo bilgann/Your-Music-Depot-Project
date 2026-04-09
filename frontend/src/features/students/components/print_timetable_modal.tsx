@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { faChevronLeft, faChevronRight, faPrint } from "@fortawesome/free-solid-svg-icons";
 import Button from "@/components/ui/button";
-import { getStudentTimetable } from "@/features/students/api/student";
 import type { StudentEnrollment } from "@/features/students/api/student";
 
 type ViewMode = "week" | "month";
@@ -50,16 +49,14 @@ function formatTimeShort(iso: string): string {
 }
 
 interface Props {
-    studentId: string;
     studentName: string;
+    enrollments: StudentEnrollment[];
     onClose: () => void;
 }
 
-export default function PrintTimetableModal({ studentId, studentName, onClose }: Props) {
+export default function PrintTimetableModal({ studentName, enrollments, onClose }: Props) {
     const [view, setView] = useState<ViewMode>("week");
     const [cursor, setCursor] = useState(() => startOfWeek(new Date()));
-    const [enrollments, setEnrollments] = useState<StudentEnrollment[]>([]);
-    const [loading, setLoading] = useState(false);
 
     const { rangeStart, rangeEnd, rangeLabel } = useMemo(() => {
         if (view === "week") {
@@ -80,13 +77,12 @@ export default function PrintTimetableModal({ studentId, studentName, onClose }:
         };
     }, [view, cursor]);
 
-    useEffect(() => {
-        setLoading(true);
-        getStudentTimetable(studentId, rangeStart, rangeEnd)
-            .then(setEnrollments)
-            .catch(() => setEnrollments([]))
-            .finally(() => setLoading(false));
-    }, [studentId, rangeStart, rangeEnd]);
+    const filteredEnrollments = useMemo(() => {
+        return enrollments.filter((e) => {
+            const date = e.lesson.start_time.slice(0, 10);
+            return rangeStart <= date && date <= rangeEnd;
+        });
+    }, [enrollments, rangeStart, rangeEnd]);
 
     function prev() {
         if (view === "week") setCursor(addDays(cursor, -7));
@@ -107,13 +103,13 @@ export default function PrintTimetableModal({ studentId, studentName, onClose }:
     // Group enrollments by date string
     const byDate = useMemo(() => {
         const map: Record<string, StudentEnrollment[]> = {};
-        for (const e of enrollments) {
+        for (const e of filteredEnrollments) {
             const dateStr = e.lesson.start_time.slice(0, 10);
             if (!map[dateStr]) map[dateStr] = [];
             map[dateStr].push(e);
         }
         return map;
-    }, [enrollments]);
+    }, [filteredEnrollments]);
 
     return (
         <div className="modal-overlay" onClick={onClose}>
@@ -149,9 +145,7 @@ export default function PrintTimetableModal({ studentId, studentName, onClose }:
                         <p>{view === "week" ? "Weekly" : "Monthly"} Timetable &mdash; {rangeLabel}</p>
                     </div>
 
-                    {loading ? (
-                        <p className="print-timetable__loading">Loading...</p>
-                    ) : view === "week" ? (
+                    {view === "week" ? (
                         <WeekView cursor={cursor} byDate={byDate} />
                     ) : (
                         <MonthView cursor={cursor} byDate={byDate} />

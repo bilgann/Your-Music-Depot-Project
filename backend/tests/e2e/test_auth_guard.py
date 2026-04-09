@@ -16,6 +16,11 @@ from backend.tests.e2e.base import E2EBase
 class TestAuthGuards(E2EBase):
     """Covers: every protected route redirects to /login without authentication."""
 
+    def setUp(self):
+        """Each auth-guard test needs an unauthenticated browser."""
+        self._dismiss_alert_if_present()
+        self._clear_session()
+
     PROTECTED_ROUTES = [
         "/home",
         "/clients",

@@ -30,16 +30,17 @@ export interface DropdownOption {
 
 export type Lesson = {
   lesson_id: string
-    course_id?: string | null
+  course_id?: string | null
   instructor_id: string
   student_id?: string | null
-    student_ids?: string[]
+  student_ids?: string[]
   room_id: string
   start_time: string
   end_time: string
   rate?: number | null
   status?: string | null
   recurrence?: string | null
+  capacity?: number | null
   instrument?: { name: string; family: string } | null
 }
 
@@ -67,3 +68,11 @@ export type Room = {
     name: string
     capacity: number | null
 }
+
+export type BlockedTime = {
+    label: string;
+    block_type: string;
+    date?: string | null;
+    date_range?: { period_start: string; period_end: string } | null;
+    recurrence?: { rule_type: string; value: string } | null;
+};
