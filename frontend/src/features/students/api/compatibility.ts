@@ -63,3 +63,17 @@ export async function getCompatibleInstructors(studentId: string): Promise<Compa
     const body = await res.json();
     return body.data ?? [];
 }
+
+export type CompatibleStudent = {
+    student_id: string;
+    hard_verdict: string | null;
+    soft_verdict: string | null;
+    reasons: string[];
+};
+
+export async function getCompatibleStudents(instructorId: string): Promise<CompatibleStudent[]> {
+    const res = await apiFetch(`/api/compatibility/students?instructor_id=${encodeURIComponent(instructorId)}`);
+    if (!res.ok) throw new Error(`Failed to fetch compatible students: ${res.statusText}`);
+    const body = await res.json();
+    return body.data ?? [];
+}

@@ -45,6 +45,21 @@ def compatible_instructors():
         return error_response(e)
 
 
+@compatibility_bp.route("/students", methods=["GET"])
+@require_auth
+def compatible_students():
+    """GET /api/compatibility/students?instructor_id=x"""
+    try:
+        instructor_id = request.args.get("instructor_id")
+        if not instructor_id:
+            from backend.app.domain.exceptions.exceptions import ValidationError
+            raise ValidationError([{"field": "instructor_id", "message": "instructor_id is required."}])
+        result = svc.filter_compatible_students(instructor_id)
+        return jsonify(ResponseContract(True, "OK", result).to_dict()), 200
+    except Exception as e:
+        return error_response(e)
+
+
 @compatibility_bp.route("", methods=["POST"])
 @require_admin
 def set_compatibility():

@@ -75,6 +75,35 @@ def filter_compatible_instructors(student_id: str) -> list:
     ]
 
 
+def filter_compatible_students(instructor_id: str) -> list:
+    """
+    Return all students compatible with the given instructor.
+    """
+    irows = Instructor.get(instructor_id)
+    if not irows:
+        raise NotFoundError("Instructor not found.")
+    instructor = InstructorEntity.from_dict(irows[0])
+
+    credentials = [CredentialEntity.from_dict(r) for r in Credential.get_by_instructor(instructor_id)]
+    all_overrides = [
+        InstructorStudentCompatibilityEntity.from_dict(r)
+        for r in InstructorStudentCompatibility.get_by_instructor(instructor_id)
+    ]
+
+    compatible = []
+    for srow in Student.get_all():
+        student = StudentEntity.from_dict(srow)
+        result = compatibility_service.check(student, instructor, credentials, all_overrides)
+        if result.can_assign:
+            compatible.append({
+                "student_id":   student.student_id,
+                "hard_verdict": result.hard_verdict,
+                "soft_verdict": result.soft_verdict,
+                "reasons":      list(result.reasons),
+            })
+    return compatible
+
+
 def set_compatibility(data: dict) -> dict:
     """Create or update a compatibility override between an instructor and student."""
     existing = InstructorStudentCompatibility.get(

@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import type { Lesson, Instructor, Room, Student } from '@/types/index'
 import { createLesson, updateLesson } from '../api/lesson'
 import { apiJson } from '@/lib/api'
-import { checkCompatibility, getCompatibleInstructors } from '@/features/students/api/compatibility'
+import { getCompatibleInstructors, getCompatibleStudents } from '@/features/students/api/compatibility'
 import type { CompatibleInstructor } from '@/features/students/api/compatibility'
 import type { RoomDetail } from '@/features/rooms/api/room_detail'
 import { getRoomById } from '@/features/rooms/api/room_detail'
@@ -90,28 +90,19 @@ export default function ScheduleLessonModal({ existingLesson, onSaved, onClose }
     }))
   }, [roomDetail])
 
-  // When instructor changes → check which students are compatible
+  // When instructor changes → fetch which students are compatible
   const checkStudentCompatibility = useCallback(async (instructorId: string) => {
     if (!instructorId) { setCompatibleStudentIds(null); return }
     setLoadingCompat(true)
     try {
-      const results = await Promise.all(
-        students.map(async (s) => {
-          try {
-            const result = await checkCompatibility(s.student_id, instructorId)
-            return { studentId: s.student_id, compatible: result.can_assign }
-          } catch {
-            return { studentId: s.student_id, compatible: true }
-          }
-        })
-      )
-      setCompatibleStudentIds(new Set(results.filter((r) => r.compatible).map((r) => r.studentId)))
+      const compatibles = await getCompatibleStudents(instructorId)
+      setCompatibleStudentIds(new Set(compatibles.map((c) => c.student_id)))
     } catch {
       setCompatibleStudentIds(null)
     } finally {
       setLoadingCompat(false)
     }
-  }, [students])
+  }, [])
 
   // When students change → find instructors compatible with ALL selected students
   const checkInstructorCompatibility = useCallback(async (studentIds: string[]) => {
@@ -142,10 +133,8 @@ export default function ScheduleLessonModal({ existingLesson, onSaved, onClose }
 
   // Run compatibility checks when instructor or students change
   useEffect(() => {
-    if (students.length > 0 && formData.instructor_id) {
-      void checkStudentCompatibility(formData.instructor_id)
-    }
-  }, [formData.instructor_id, students, checkStudentCompatibility])
+    void checkStudentCompatibility(formData.instructor_id)
+  }, [formData.instructor_id, checkStudentCompatibility])
 
   useEffect(() => {
     void checkInstructorCompatibility(formData.student_ids)
