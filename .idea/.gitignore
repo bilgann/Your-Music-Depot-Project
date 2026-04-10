@@ -3,6 +3,6 @@
 /workspace.xml
 # Editor-based HTTP Client requests
 /httpRequests/
-
-# Secrets and shit
-/backend/.env
+# Datasource local storage ignored files
+/dataSources/
+/dataSources.local.xml
